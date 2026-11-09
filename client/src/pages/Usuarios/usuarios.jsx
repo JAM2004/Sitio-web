@@ -9,7 +9,15 @@ const Usuarios = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [usuarioEditar, setUsuarioEditar] = useState(null);
-  const [idRolActual, setIdRolActual] = useState(null);
+  const [idRolActual, setIdRolActual] = useState(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    try {
+      return JSON.parse(atob(token.split(".")[1])).id_rol ?? null;
+    } catch {
+      return null;
+    }
+  });
 
   const [paginaActual, setPaginaActual] = useState(1);
   const usuariosPorPagina = 5;
@@ -17,17 +25,13 @@ const Usuarios = () => {
   const indiceUltimoUsuario = paginaActual * usuariosPorPagina;
   const indicePrimerUsuario = indiceUltimoUsuario - usuariosPorPagina;
 
-  const decodificarToken = (token) => {
-    try {
-      return JSON.parse(atob(token.split(".")[1]));
-    } catch (error) {
-      return null;
-    }
-  };
-
   const obtenerUsuarios = async () => {
     try {
-      const respuesta = await fetch("http://localhost:3000/usuarios");
+      const respuesta = await fetch("http://localhost:3000/usuarios", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       if (!respuesta.ok) throw new Error("No se pudo conectar");
       const datos = await respuesta.json();
       setUsuarios(datos);
@@ -37,12 +41,17 @@ const Usuarios = () => {
   };
 
   useEffect(() => {
-    obtenerUsuarios();
+    const admin = idRolActual === 1;
 
-    const token = localStorage.getItem("token");
-    if (token) {
-      const decoded = decodificarToken(token);
-      if (decoded) setIdRolActual(decoded.id_rol);
+    if (admin) {
+      obtenerUsuarios();
+    } else {
+      // Sin permiso para listar: solo mi propia fila para cambiar mi contraseña
+      const propio = JSON.parse(localStorage.getItem("user") || "null");
+      if (propio) {
+        const roles = { 1: "Administrador", 2: "Visitante", 3: "Editor" };
+        setUsuarios([{ ...propio, nombre_rol: roles[propio.id_rol] || "" }]);
+      }
     }
   }, []);
 
@@ -185,28 +194,34 @@ const Usuarios = () => {
     }
   };
 
+  const esAdmin = idRolActual === 1;
+
   return (
     <div className="usuarios-container">
       <Toaster richColors position="top-center" />
-      <h2 className="titulo-principal">Gestión de Usuarios</h2>
+      <h2 className="titulo-principal">
+        {esAdmin ? "Gestión de Usuarios" : "Mi usuario"}
+      </h2>
 
-      <div className="actions-bar">
-        <button className="btn-add" onClick={abrirModalCrear}>
-          Agregar Nuevo Usuario
-        </button>
+      {esAdmin && (
+        <div className="actions-bar">
+          <button className="btn-add" onClick={abrirModalCrear}>
+            Agregar Nuevo Usuario
+          </button>
 
-        <div className="search-container">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Buscar usuario..."
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setPaginaActual(1);
-            }}
-          />
+          <div className="search-container">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Buscar usuario..."
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPaginaActual(1);
+              }}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <table className="tabla-usuarios">
         <thead>
@@ -251,18 +266,20 @@ const Usuarios = () => {
                         </span>
                       )}
 
-                      <button
-                        className={`btn btn-estado ${
-                          user.estado == 1
-                            ? "status-activo"
-                            : "status-inactivo"
-                        }`}
-                        onClick={() =>
-                          toggleEstadoUsuario(user.ID_User, user.estado)
-                        }
-                      >
-                        {user.estado == 1 ? "Activo" : "Inactivo"}
-                      </button>
+                      {esAdmin && (
+                        <button
+                          className={`btn btn-estado ${
+                            user.estado == 1
+                              ? "status-activo"
+                              : "status-inactivo"
+                          }`}
+                          onClick={() =>
+                            toggleEstadoUsuario(user.ID_User, user.estado)
+                          }
+                        >
+                          {user.estado == 1 ? "Activo" : "Inactivo"}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

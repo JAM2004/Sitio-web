@@ -9,9 +9,9 @@ dotenv.config();
 
 const router = Router();
 
-router.get('/', async (req, res) => {
+router.get('/', authenticateAdmin, async (req, res) => {
   try {
-    const [rows] = await connection.query('SELECT u.ID_User, u.Username, u.Pass, u.email, u.estado, r.nombre_rol FROM usuarios u LEFT JOIN roles r ON u.id_rol = r.id_rol');
+    const [rows] = await connection.query('SELECT u.ID_User, u.Username, u.email, u.estado, u.id_rol, r.nombre_rol FROM usuarios u LEFT JOIN roles r ON u.id_rol = r.id_rol');
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -39,6 +39,10 @@ router.post('/login', async (req, res) => {
     if (user.estado !== 1) { 
       return res.status(403).json({ error: 'Usuario dado de baja' });
     }   
+
+    if (user.id_rol === 2) {
+      return res.status(403).json({ error: 'Rol Visitante sin acceso al panel' });
+    }
   
 
     const payload = {

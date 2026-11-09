@@ -7,7 +7,7 @@ export const verEventos = async (req, res) => {
       const [eventos] = await db.execute('SELECT * FROM eventos ORDER BY deleted_at DESC');
       return res.json(eventos);
     }
-    else if (req.user.id_rol === 2 || req.user.id === 3) {
+    else if (req.user.id_rol === 3) {
       const [eventos] = await db.execute(
         'SELECT * FROM eventos WHERE deleted_at IS NULL ORDER BY fecha_inicio DESC'
       );
@@ -102,8 +102,8 @@ export const crearEvento = async (req, res) => {
   export const toggleEvento = async (req, res) => {
   const { id } = req.params; 
 
-  if (req.user.id_rol !== 1) { 
-    return res.status(403).json({ error: 'No autorizado: solo admins pueden cambiar el estado de eventos' });
+  if (req.user.id_rol !== 1 && req.user.id_rol !== 3) { 
+    return res.status(403).json({ error: 'No autorizado: solo admins y editores pueden cambiar el estado de eventos' });
   }
 
   try {

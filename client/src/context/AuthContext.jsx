@@ -39,19 +39,17 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("id_rol");
+    localStorage.removeItem("id_user");
 
     return navigate("/", { replace: true });
   };
 
-  // 4. Lógica maestra de permisos
+  // 4. Lógica maestra de permisos (id_rol: 1 admin, 3 editor)
   const hasRole = (allowedRoles) => {
     if (!user) return false;
-
-    // El ADMIN siempre tiene permiso para todo
-    if (user.role === "admin") return true;
-
-    // Si no es admin, buscamos si su rol está en la lista permitida
-    return allowedRoles.includes(user.role);
+    if (user.id_rol === 1) return true;
+    return allowedRoles.includes(user.id_rol);
   };
 
   return (

@@ -23,7 +23,7 @@ const Dashboard = () => {
         {!isEditor && (
           <Header
             title={
-              user.role === "admin"
+              user.id_rol === 1
                 ? "Panel de Control Maestro"
                 : "Zona de Trabajo"
             }

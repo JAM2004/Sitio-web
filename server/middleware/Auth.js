@@ -15,6 +15,15 @@ export const authenticateToken = (req, res, next) => {
 
 };
 
+    // Uso: router.post('/x', authenticateToken, requireRole(1,3), ctrl)
+    // 1 = Administrador, 3 = Editor (2 = Visitante no entra al panel)
+    export const requireRole = (...roles) => (req, res, next) => {
+      if (!req.user || !roles.includes(req.user.id_rol)) {
+        return res.status(403).json({ error: 'No autorizado para esta acción' });
+      }
+      next();
+    };
+
     export const authenticateAdmin = (req, res, next) => {
       const token = req.headers.authorization?.split(' ')[1];
       if (!token) return res.status(401).json({ error: 'Token requerido' });

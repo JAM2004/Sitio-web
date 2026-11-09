@@ -7,6 +7,7 @@ const TemplateCard = ({ template, onSelect, onPreview, disabled = false, showBut
   const fileInputRef = useRef(null);
   const [portadaLocal, setPortadaLocal] = useState(template.portada);
   const [plantillaActiva, setPlantillaActiva] = useState(null);
+  const esAdmin = localStorage.getItem("id_rol") === "1";
 
   const handleSelectImage = (e) => {
     e.stopPropagation();
@@ -72,6 +73,13 @@ const handleFileChange = async (e) => {
 };
 
   const handleLimpiar = async () => {
+    if (
+      !window.confirm(
+        "¿Vaciar esta plantilla? Se borrará el contenido de la página del evento."
+      )
+    ) {
+      return;
+    }
     const token = localStorage.getItem("token");
     try {
       const res = await fetch( `http://localhost:3000/plantillas/${template.id_plantilla}`,
@@ -169,18 +177,20 @@ const handleFileChange = async (e) => {
               </button>
             )}
             
-            <button
-              className="limpiar-btn"
-              
-              onClick={ (e) => {
-                e.stopPropagation();
-                handleLimpiar();
-              }}
-              disabled={disabled}
-              style={{ opacity: disabled ? 0.5 : 1, cursor: disabled ? "not-allowed" : "pointer" }}
-            >
-              Limpiar Plantilla
-            </button>
+            {esAdmin && (
+              <button
+                className="limpiar-btn"
+                
+                onClick={ (e) => {
+                  e.stopPropagation();
+                  handleLimpiar();
+                }}
+                disabled={disabled}
+                style={{ opacity: disabled ? 0.5 : 1, cursor: disabled ? "not-allowed" : "pointer" }}
+              >
+                Limpiar Plantilla
+              </button>
+            )}
           </>
         )}
       </div>

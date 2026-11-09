@@ -26,9 +26,9 @@ const Sidebar = ({ rol }) => {
             </li>
           )}
 
-          {/* 3. EVENTOS: Visible para ADMIN y USUARIO 
-              (El Admin edita, el Usuario solo ve - eso se controla dentro de la página) */}
-          {(rol === "1" || rol === "2") && (
+          {/* 2. EVENTOS: Visible para ADMIN y EDITOR
+              (el Visitante no entra al panel) */}
+          {(rol === "1" || rol === "3") && (
             <li>
               <NavLink to="/dashboard/eventos">Eventos</NavLink>
             </li>
