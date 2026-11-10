@@ -2,6 +2,7 @@ import { Router } from 'express';
 import connection from '../src/db.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { authenticateAdmin, authenticateToken } from '../middleware/Auth.js';
 
@@ -48,7 +49,8 @@ router.post('/login', async (req, res) => {
     const payload = {
       id: user.ID_User,
       email: user.email,
-      id_rol: user.id_rol
+      id_rol: user.id_rol,
+      must_change_pass: user.must_change_pass === 1
     };
 
     const secret = process.env.JWT_SECRET;
@@ -137,9 +139,15 @@ router.patch('/usuarios/:id/status', authenticateAdmin, async (req,res) => {
 
 router.patch('/usuarios/cambiar-pass', authenticateToken, async (req, res) => {
   const { password_actual, password_nueva, password_confirmar } = req.body;
+  // Si el admin marcó "cambio forzado", no se pide la contraseña actual
+  const forzado = !!req.user.must_change_pass;
 
-  if (!password_actual || !password_nueva || !password_confirmar) {
-    return res.status(400).json({ error: 'Todos los campos son requeridos: password_actual, password_nueva, password_confirmar' });
+  if (!password_nueva || !password_confirmar) {
+    return res.status(400).json({ error: 'La nueva contraseña y su confirmación son requeridas' });
+  }
+
+  if (!forzado && !password_actual) {
+    return res.status(400).json({ error: 'La contraseña actual es requerida' });
   }
 
   if (password_nueva !== password_confirmar) {
@@ -150,7 +158,7 @@ router.patch('/usuarios/cambiar-pass', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' });
   }
 
-  if (password_actual === password_nueva) {
+  if (!forzado && password_actual === password_nueva) {
     return res.status(400).json({ error: 'La nueva contraseña no puede ser igual a la actual' });
   }
 
@@ -160,24 +168,53 @@ router.patch('/usuarios/cambiar-pass', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    const compara = await bcrypt.compare(password_actual, user[0].Pass);
-    if (!compara) {
-      return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+    if (!forzado) {
+      const compara = await bcrypt.compare(password_actual, user[0].Pass);
+      if (!compara) {
+        return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+      }
     }
 
     const hashedNueva = await bcrypt.hash(password_nueva, 10);
 
-    await connection.execute('UPDATE usuarios SET Pass = ? WHERE ID_User = ?', [hashedNueva, req.user.id]);
+    await connection.execute('UPDATE usuarios SET Pass = ?, must_change_pass = 0 WHERE ID_User = ?', [hashedNueva, req.user.id]);
 
     console.log(`Contraseña cambiada por usuario ${req.user.id} en ${new Date().toISOString()}`);
 
-    res.json({ message: 'Contraseña cambiada correctamente' });
+    res.json({
+      message: 'Contraseña cambiada correctamente',
+      // El token actual sigue marcado como "forzado": hay que entrar de nuevo
+      requiereRelogin: forzado
+    });
   } catch (err) {
     console.error('Error cambiando contraseña:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 }
 );
+
+// Admin: restablece la contraseña de un usuario y lo obliga a cambiarla al entrar
+router.patch('/usuarios/:id/reset-pass', authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [usuarios] = await connection.execute('SELECT ID_User FROM usuarios WHERE ID_User = ?', [id]);
+    if (usuarios.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const temporal = crypto.randomBytes(9).toString('base64url');
+    const hash = await bcrypt.hash(temporal, 10);
+
+    await connection.execute('UPDATE usuarios SET Pass = ?, must_change_pass = 1 WHERE ID_User = ?', [hash, id]);
+
+    console.log(`Contraseña restablecida por admin ${req.user.id} para el usuario ${id}`);
+    res.json({ message: 'Contraseña restablecida. El usuario deberá cambiarla al ingresar.', temporal });
+  } catch (err) {
+    console.error('Error restableciendo contraseña:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 
 
 export default router;

@@ -43,7 +43,11 @@ export default function Login_component() {
       localStorage.setItem("user", JSON.stringify(data.user));
 
       login(data.user);
-      navigate("/dashboard/inicio", { replace: true });
+      if (data.user?.must_change_pass) {
+        navigate("/cambiar-password", { replace: true });
+      } else {
+        navigate("/dashboard/inicio", { replace: true });
+      }
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
       alert("Error en la conexión con el servidor");

@@ -9,6 +9,10 @@ export const authenticateToken = (req, res, next) => {
     if (err) {
       return res.status(403).json({ error: 'Token inválido o expirado' });
     }
+    // Cambio de contraseña forzado: solo se deja pasar el cambio
+    if (decoded.must_change_pass && !req.originalUrl.includes('cambiar-pass')) {
+      return res.status(403).json({ error: 'Debes cambiar tu contraseña', code: 'CAMBIO_PASS' });
+    }
     req.user = decoded;
     next();
   });

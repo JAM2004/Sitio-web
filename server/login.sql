@@ -194,6 +194,7 @@ CREATE TABLE `usuarios` (
   `email` varchar(40) NOT NULL,
   `estado` tinyint(1) DEFAULT '1',
   `id_rol` int DEFAULT NULL,
+  `must_change_pass` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`ID_User`),
   UNIQUE KEY `ID_User` (`ID_User`),
   UNIQUE KEY `Username` (`Username`),
@@ -208,7 +209,7 @@ CREATE TABLE `usuarios` (
 
 LOCK TABLES `usuarios` WRITE;
 /*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
-INSERT INTO `usuarios` VALUES (1,'Antonio','$2b$10$JqJb1nhAcvhca/BFwDfrVO.9AKCPOLqv9NqrNFXtyIdP/dcM88mlm','antonio1234@gmail.com',1,1),(2,'Daniel','$2b$10$ri8Qf7EMYNtN35vIYzZWsOSZMKHnUYk2rZEgDv6UUUWZsvSx6PWuy','daniel54321@gmail.com',0,2),(3,'Valeria','$2b$10$7A96oxE16JD8l.9lUX4auez7wEqG8kv8kPKKfqI6fcGimZPtzKh36','valeria123@gmail.com',0,3),(4,'noharaayang','$2b$10$MQOmN4xv85rNhXVTnq6.3egf56c6qK1lQEA7iqFxFCWsx4Jrl8s3O','noharita1@gmail.com',0,1),(5,'DUCL10','$2b$10$mptzvv3wm.iEgmkUHauNsO91eDKCglMSIXnM64fG3gyjRvL.4J7Wm','duclcota@gmail.com',1,3),(6,'CachetesHDP','$2b$10$UZXPuzxRW2Gg/lbcavLaaOpamFFTQweyByNCInUcJFHSBNodNGC82','cache@gmail.com',1,2);
+INSERT INTO `usuarios` (ID_User, Username, Pass, email, estado, id_rol) VALUES (1,'Antonio','$2b$10$JqJb1nhAcvhca/BFwDfrVO.9AKCPOLqv9NqrNFXtyIdP/dcM88mlm','antonio1234@gmail.com',1,1),(2,'Daniel','$2b$10$ri8Qf7EMYNtN35vIYzZWsOSZMKHnUYk2rZEgDv6UUUWZsvSx6PWuy','daniel54321@gmail.com',0,2),(3,'Valeria','$2b$10$7A96oxE16JD8l.9lUX4auez7wEqG8kv8kPKKfqI6fcGimZPtzKh36','valeria123@gmail.com',0,3),(4,'noharaayang','$2b$10$MQOmN4xv85rNhXVTnq6.3egf56c6qK1lQEA7iqFxFCWsx4Jrl8s3O','noharita1@gmail.com',0,1),(5,'DUCL10','$2b$10$mptzvv3wm.iEgmkUHauNsO91eDKCglMSIXnM64fG3gyjRvL.4J7Wm','duclcota@gmail.com',1,3),(6,'CachetesHDP','$2b$10$UZXPuzxRW2Gg/lbcavLaaOpamFFTQweyByNCInUcJFHSBNodNGC82','cache@gmail.com',1,2);
 /*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
 UNLOCK TABLES;
 

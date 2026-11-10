@@ -1,8 +1,8 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "./context/AuthContext";
 
 import Login from './pages/Login/login.jsx';
+import CambiarPassword from "./pages/Login/CambiarPassword.jsx";
 import Inicio from "./components/inicio.jsx";
 import Dashboard from "./components/dashboard";
 import Usuarios from "./pages/Usuarios/usuarios.jsx";
@@ -17,8 +17,17 @@ import "./App.css";
 // Sin token no hay panel: manda al login (y devuelve aquí al cerrar sesión)
 function RequireAuth({ children }) {
   const location = useLocation();
-  if (!localStorage.getItem("token")) {
+  const token = localStorage.getItem("token");
+  if (!token) {
     return <Navigate to="/" replace state={{ from: location }} />;
+  }
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.must_change_pass) {
+      return <Navigate to="/cambiar-password" replace />;
+    }
+  } catch {
+    // token ilegible: que el servidor decida en el primer fetch
   }
   return children;
 }
@@ -27,6 +36,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
+      <Route path="/cambiar-password" element={<CambiarPassword />} />
       <Route path="/evento/:slug" element={<PublicEventPage />} />
 
       {/* TODAS LAS PÁGINAS QUE LLEVAN SIDEBAR VAN AQUÍ */}

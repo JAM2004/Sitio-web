@@ -157,6 +157,43 @@ const Usuarios = () => {
     }
   };
 
+  const resetearPassword = async (usuario) => {
+    if (
+      !window.confirm(
+        `¿Restablecer la contraseña de ${usuario.Username}? Se le pedirá cambiarla al ingresar.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const respuesta = await fetch(
+        `http://localhost:3000/usuarios/${usuario.ID_User}/reset-pass`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const data = await respuesta.json();
+
+      if (!respuesta.ok) throw new Error(data.error || "Error");
+
+      try {
+        await navigator.clipboard.writeText(data.temporal);
+      } catch {
+        // sin portapapeles: el toast igual muestra la contraseña
+      }
+      toast.success(
+        `Contraseña temporal de ${usuario.Username}: ${data.temporal} (copiada al portapapeles)`
+      );
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
   const toggleEstadoUsuario = async (id, estadoActual) => {
     const nuevoEstado = estadoActual == 1 ? 0 : 1;
 
@@ -264,6 +301,16 @@ const Usuarios = () => {
                         >
                           Bloqueado
                         </span>
+                      )}
+
+                      {esAdmin && (
+                        <button
+                          className="btn btn-editar"
+                          onClick={() => resetearPassword(user)}
+                          style={{ marginRight: "10px" }}
+                        >
+                          Reset
+                        </button>
                       )}
 
                       {esAdmin && (
