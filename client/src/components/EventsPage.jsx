@@ -96,7 +96,7 @@ const EventsPage = () => {
 
         if (!res.ok) {
           const errorData = await res.json();
-          throw new Error(errorData.message || "Error al editar evento");
+          throw new Error(errorData.error || errorData.message || "Error al editar evento");
         }
 
         toast.success("Evento actualizado correctamente");
@@ -113,7 +113,7 @@ const EventsPage = () => {
 
         if (!res.ok) {
           const errorData = await res.json();
-          throw new Error(errorData.message || "Error al crear evento");
+          throw new Error(errorData.error || errorData.message || "Error al crear evento");
         }
 
         toast.success("Evento creado correctamente");
@@ -121,11 +121,11 @@ const EventsPage = () => {
 
       const datos = await obtenerEventos();
       if (Array.isArray(datos)) setEvents(datos);
+      cerrarModal();
     } catch (err) {
       toast.error(`Error: ${err.message}`);
-    } finally {
-      cerrarModal();
     }
+  
   };
 
   const handleToggleStatus = async (event) => {

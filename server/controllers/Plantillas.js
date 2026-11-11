@@ -56,7 +56,7 @@ export const verPlantillas = async (req, res) => {
 export const verUnaPlantilla = async (req, res) => {
   const { id } = req.params;
   try {
-    const [rows] = await connection.query('SELECT id_plantilla, nombre_plantilla, estructura_base FROM plantillas WHERE id_plantilla = ? AND deleted_at IS NULL', [id]);
+    const [rows] = await connection.query('SELECT p.id_plantilla, p.nombre_plantilla, p.estructura_base, pg.slug_url FROM plantillas p LEFT JOIN paginas pg ON p.paginas_id_pagina = pg.id_pagina WHERE p.id_plantilla = ? AND p.deleted_at IS NULL', [id]);
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Plantilla no encontrada' });
     }

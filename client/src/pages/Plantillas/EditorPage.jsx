@@ -11,7 +11,9 @@ export default function EditorPage() {
   const [slugUrl, setSlugUrl] = useState(null);
   const [loading, setLoading] = useState(true);
 
+
   useEffect(() => {
+    const tituloPrevio = document.title;
     const cargarPlantilla = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -45,6 +47,9 @@ export default function EditorPage() {
 
         setTemplateData(estructura);
         setSlugUrl(data.slug_url);
+        if (data.nombre_plantilla) {
+          document.title = data.nombre_plantilla;
+        }
       } catch (err) {
         console.error("Error cargando plantilla:", err);
       } finally {
@@ -55,6 +60,8 @@ export default function EditorPage() {
     if (id) {
       cargarPlantilla();
     }
+    return () => {
+      document.title = tituloPrevio; };
   }, [id]);
 
   const hasTableData = (data) => {

@@ -28,15 +28,20 @@ export const crearEvento = async (req, res) => {
   const { titulo, descripcion, fecha_inicio, fecha_fin, lugar } = req.body;
   const usuarioId = req.user.id;
 
-  if (fecha_inicio && fecha_fin && new Date(fecha_inicio) > new Date(fecha_fin)) {
-    return res.status(400).json({ error: 'La fecha de inicio no puede ser posterior a la fecha de fin' });
-  }
-
+  if (!titulo || !String(titulo).trim()) {
+    return res.status(400).json({ error: 'El título es obligatorio' });}
+  if (!fecha_inicio) {
+    return res.status(400).json({ error: 'La fecha de inicio es obligatoria' }); }
+  if (Numbre.isNaN(new Date(fecha_inicio).getTime())) {
+    return res.status(400).json({ error: 'La fecha de inicio no es válida' }); }
+  if (fecha_fin && new Date(fecha_inicio) > new Date(fecha_fin)) {
+    return res.status(400).json({ error: 'La fecha de inicio no puede ser posterior a la fecha de fin' }); }
+  
+  const conn = await db.getConnection();
   try {
-    await db.query('START TRANSACTION');
-            // Crear página asociada a la nueva plantilla
+    await conn.beginTransaction();
     const slug = `evento-${Date.now()}`;
-    const [paginaResult] = await db.execute(
+    const [paginaResult] = await conn.execute(
       'INSERT INTO paginas (slug_url, fecha_modificacion) value (?, NOW())',
       [slug]
     );
@@ -44,9 +49,9 @@ export const crearEvento = async (req, res) => {
 
 
     // Selecciona plantilla base (por defecto id 1)
-    const [basePlantillas] = await db.execute('SELECT id_plantilla, nombre_plantilla, estructura_base FROM plantillas WHERE id_plantilla = 1');
+    const [basePlantillas] = await conn.execute('SELECT id_plantilla, nombre_plantilla, estructura_base FROM plantillas WHERE id_plantilla = 1');
     if (basePlantillas.length === 0) {
-      await db.query('ROLLBACK');
+      await conn.rollback();
       return res.status(400).json({ error: 'Plantilla base no encontrada' });
     }
 
@@ -55,48 +60,32 @@ export const crearEvento = async (req, res) => {
         .replace(/\s+/g, ' ')
         .trim()
         .slice(0, 100);
-      const nuevaPlantillaNombre = sanitizedTitle;
       const estructuraBase = base.estructura_base;
-      const [plantillaInsert] = await db.execute(
+      const [plantillaInsert] = await conn.execute(
       'INSERT INTO plantillas (nombre_plantilla, estructura_base, paginas_id_pagina) VALUES (?, ?, ?)',
-      [nuevaPlantillaNombre, estructuraBase, paginaId]
+      [sanitizedTitle, estructuraBase, paginaId]
       );
     const nuevaPlantillaId = plantillaInsert.insertId;
-
-    // Crear componentes basados en estructura_base
-    // const componentesArray = [
-    //   { tipo: 'texto', contenido: JSON.stringify({ nombre: 'Portada', texto: '', color: '#000000' }) },
-    //   { tipo: 'imagen', contenido: JSON.stringify({ nombre: 'Imagen Destacada', url: '', alt: '' }) },
-    //   { tipo: 'slider', contenido: JSON.stringify({ nombre: 'Galería', slides: [] }) },
-    //   { tipo: 'contacto', contenido: JSON.stringify({ nombre: 'Contacto', titulo: '', telefono: '', email: '' }) },
-    //   { tipo: 'about', contenido: JSON.stringify({ nombre: 'Acerca De', titulo: '', descripcion: '', imagen: '' }) }
-    // ];
-
-    // let orden = 1;
-    // for (const comp of componentesArray) {
-    //   const [compResult] = await db.execute(
-    //     'INSERT INTO componentes (tipo_componente, contenido, orden, plantillas_id_plantilla) VALUES (?, ?, ?, ?)',
-    //     [comp.tipo, comp.contenido, orden, nuevaPlantillaId]
-    //   );
-    //   orden++;
-    // }
-
         // Crear evento y vincular la plantilla
-    const [eventoResult] = await db.execute(
+    const [eventoResult] = await conn.execute(
       'INSERT INTO eventos (titulo, descripcion, fecha_inicio, fecha_fin, lugar, usuarios_ID_User, plantillas_id_plantilla) value (?, ?, ?, ?, ?, ?, ?)',
       [titulo, descripcion, fecha_inicio, fecha_fin, lugar, usuarioId, nuevaPlantillaId]
     );
     const eventoId = eventoResult.insertId;
 
 
-    await db.query('COMMIT');
+    await conn.commit() ;
 
     res.json({ message: 'Evento creado', paginaId, slug, id_evento: eventoId, id_plantilla: nuevaPlantillaId });
   } catch (err) {
-    try { await db.query('ROLLBACK'); } catch (e) { /* ignore */ }
+    try { await conn.rollback(); } catch (e) { /* ignore */ }
     console.error('Error creando evento:', err);
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'Ya existe un evento con el mismo título' });
+    }
     res.status(500).json({ error: err.message });
-  }
+  } finally {
+    conn.release(); }
 };
 
   export const toggleEvento = async (req, res) => {
@@ -105,17 +94,17 @@ export const crearEvento = async (req, res) => {
   if (req.user.id_rol !== 1 && req.user.id_rol !== 3) { 
     return res.status(403).json({ error: 'No autorizado: solo admins y editores pueden cambiar el estado de eventos' });
   }
-
+  const conn = await db.getConnection();
   try {
-    await db.query('START TRANSACTION');
+    await conn.beginTransaction();
 
-    const [eventos] = await db.execute(
+    const [eventos] = await conn.execute(
       'SELECT plantillas_id_plantilla, deleted_at FROM eventos WHERE id_evento = ?',
       [id]
     );
 
     if (eventos.length === 0) {
-      await db.query('ROLLBACK');
+      await conn.rollback();
       return res.status(404).json({ error: 'Evento no encontrado' });
     }
 
@@ -123,30 +112,31 @@ export const crearEvento = async (req, res) => {
     const plantillaId = evento.plantillas_id_plantilla;
     const isActive = evento.deleted_at === null;
 
-    const [plantilla] = await db.execute(
+    const [plantilla] = await conn.execute(
       'SELECT paginas_id_pagina FROM plantillas WHERE id_plantilla = ?',
       [plantillaId]
     );
 
     const isActiveQuery = isActive ? 'UPDATE eventos SET deleted_at = NOW() WHERE id_evento = ?' : 'UPDATE eventos SET deleted_at = NULL WHERE id_evento = ?';
-    await db.execute(isActiveQuery, [id]);
+    await conn.execute(isActiveQuery, [id]);
 
     if (plantilla.length > 0 && plantilla[0].paginas_id_pagina) {
       const pageQuery = isActive ? 'UPDATE paginas SET deleted_at = NOW() WHERE id_pagina = ?' : 'UPDATE paginas SET deleted_at = NULL WHERE id_pagina = ?';
-      await db.execute(pageQuery, [plantilla[0].paginas_id_pagina]);
+      await conn.execute(pageQuery, [plantilla[0].paginas_id_pagina]);
     }
 
     const templateQuery = isActive ? 'UPDATE plantillas SET deleted_at = NOW() WHERE id_plantilla = ?' : 'UPDATE plantillas SET deleted_at = NULL WHERE id_plantilla = ?';
-    await db.execute(templateQuery, [plantillaId]);
+    await conn.execute(templateQuery, [plantillaId]);
 
-    await db.query('COMMIT');
+    await conn.commit();
     const action = isActive ? 'desactivado' : 'activado';
     res.json({ message: `Evento ${action} correctamente` });
   } catch (err) {
-    await db.query('ROLLBACK');
+    try { await conn.rollback(); } catch (e) { /* ignore */ }
     console.error('Error al cambiar estado del evento:', err);
     res.status(500).json({ error: err.message });
-  }
+  } finally {
+    conn.release(); }
 };
 
 export const editarEvento = async (req, res) => {
@@ -159,15 +149,27 @@ export const editarEvento = async (req, res) => {
     if (!titulo && !descripcion && !fecha_inicio && !fecha_fin && !lugar) {
     return res.status(400).json({ error: 'Debe proporcionar al menos un campo para actualizar' });}
 
+    if (titulo !== undefined && !String(titulo).trim()) {
+    return res.status(400).json({ error: 'El título no puede estar vacío' });}
+
+    if (titulo !== undefined && !String(titulo).trim().length > 100) {
+    return res.status(400).json({ error: 'El título no puede exceder los 100 caracteres' });}
+
+    if (fecha_inicio !== undefined && Number.isNaN(new Date(fecha_inicio).getTime())) {  
+      return res.status(400).json({ error: 'La fecha de inicio no es válida' });} 
+
     if (fecha_inicio && fecha_fin && new Date(fecha_inicio) > new Date(fecha_fin)) {
     return res.status(400).json({ error: 'La fecha de inicio no puede ser posterior a la fecha de fin' });}
-
+  
+  const conn = await db.getConnection();
   try {
-     const [exist] = await db.execute(
+    await conn.beginTransaction();
+     const [exist] = await conn.execute(
       'SELECT id_evento FROM eventos WHERE id_evento = ? AND deleted_at IS NULL',
       [id]
     );
     if (exist.length === 0) {
+      await conn.rollback();
       return res.status(404).json({ error: 'Evento no encontrado o eliminado' });
     }
     
@@ -182,20 +184,22 @@ export const editarEvento = async (req, res) => {
 
     const query = `UPDATE eventos SET ${act.join(', ')} WHERE id_evento = ? AND deleted_at IS NULL`;
     value.push(id); 
+    if (titulo !== undefined) {
     const queryPlantilla = 'UPDATE plantillas SET nombre_plantilla = ? WHERE id_plantilla = (SELECT plantillas_id_plantilla FROM eventos WHERE id_evento = ?)';
-    await db.execute(queryPlantilla, [titulo, id]);  
+    const nombrePlantilla = String(titulo).replace(/\s+/g, ' ').trim().slice(0, 100);
+    await conn.execute(queryPlantilla, [nombrePlantilla, id]); }
 
-    const [result] = await db.execute(query, value);
+    const [result] = await conn.execute(query, value);
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Evento no encontrado o no se realizaron cambios' });
-    }
-
-    res.json({ message: 'Evento actualizado correctamente' });
-
-  }
- catch (err) {
+    await conn.commit();
+    res.json({ message: 'Evento actualizado correctamente', cambios: result.affectedRows });
+  } catch (err) {
+    try { await conn.rollback(); } catch (e) { /* ignore */ }
     console.error('Error editando evento:', err);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'Ya existe un evento con el mismo título' });
+    } 
+    res.status(500).json({ error: err.message }); 
+  } finally {
+    conn.release(); }
 };

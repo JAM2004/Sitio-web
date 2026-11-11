@@ -137,7 +137,6 @@ CREATE TABLE `plantillas` (
   `paginas_id_pagina` int DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_plantilla`),
-  UNIQUE KEY `nombre_plantilla` (`nombre_plantilla`),
   KEY `fk_plantillas_paginas1_idx` (`paginas_id_pagina`),
   KEY `idx_plantillas_nombre` (`nombre_plantilla`),
   CONSTRAINT `fk_plantillas_paginas1` FOREIGN KEY (`paginas_id_pagina`) REFERENCES `paginas` (`id_pagina`)

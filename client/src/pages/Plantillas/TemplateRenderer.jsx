@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Heading, Text, Button, VStack, HStack, Wrap, WrapItem, Image } from "@chakra-ui/react";
+import { Box, Heading, Text, Button, VStack, HStack, Wrap, WrapItem, Image, Divider } from "@chakra-ui/react";
 
 const TemplateRenderer = ({ estructura }) => {
   if (!estructura || !estructura.sections) {
@@ -98,12 +98,16 @@ const TemplateRenderer = ({ estructura }) => {
                 )}
           </Wrap>
         );
+      case "divider":
+        return <Divider key= {key} my ={2} />;
+      case "spacer":
+        return <Box key={key} h={"20px"} />;
       default:
         return (
           <Text key={key} fontSize="md" color="gray.600" mb={3}>
             {content || "Bloque desconocido"}
           </Text>
-        );
+        );    
     }
   };
 

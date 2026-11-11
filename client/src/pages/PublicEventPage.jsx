@@ -83,6 +83,13 @@ export default function PublicEventPage() {
     }
   }, [slug]);
 
+  useEffect(() => {
+    if (!pageData) return;
+    const anterior = document.title;
+    if (pageData.titulo) document.title = pageData.titulo;
+    return () => { document.title = anterior;};
+  }, [pageData]);
+
   const pageStructure = pageData ? parseEstructura(pageData.estructura_base || pageData.estructura || pageData) : null;
 
   if (loading) {
@@ -100,7 +107,7 @@ export default function PublicEventPage() {
         <TemplateRenderer estructura={pageStructure} />
       ) : (
         <Center minH="100vh">
-          <Text fontSize="xl">No se encontró una estructura guardada para esta página.</Text>
+          <Text fontSize="xl">Esta pagina ya no esta disponible.</Text>
         </Center>
       )}
     </Box>

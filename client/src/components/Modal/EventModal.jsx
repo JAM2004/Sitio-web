@@ -124,6 +124,7 @@ const EventModal = ({ isOpen, onClose, onSubmit, eventoAEditar }) => {
               value={formData.fecha_inicio}
               onChange={handleChange}
               className="input"
+              required
             />
           </div>
 

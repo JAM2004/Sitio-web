@@ -35,7 +35,6 @@ import CarouselBlock from "./CarouselBlock";
 import DroppableColumn from "./DroppableColumn";
 import SidebarEditor from "./SidebarEditor";
 import { getDefaultStructure } from "./estructuraDefault";
-import { useNavigate } from "react-router-dom";
 
 const getEditorDataKey = (plantillaId) => `editorData_${plantillaId}`;
 
@@ -52,8 +51,6 @@ const isValidSections = (candidate) => {
 
 export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl }) {
   const toast = useToast();
-  const navigate = useNavigate();
-
   const [sectionToDelete, setSectionToDelete] = useState(null);
   const cancelRef = useRef();
 
@@ -718,7 +715,9 @@ const handleImageUpload = async (blockId, file) => {
             }}
             onClick={() => {
               if (slugUrl) {
-                navigate(`/evento/${slugUrl}`);
+                window.open(`/evento/${slugUrl}`, "_blank", "noopener,noreferrer");
+              } else {
+                alert("Esta plantilla no tiene pagina publica todavia");
               }
             }}
 
