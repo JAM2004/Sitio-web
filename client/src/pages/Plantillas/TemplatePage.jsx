@@ -13,7 +13,7 @@ const TemplatesPage = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:3000/plantillas", {
+      const res = await fetch("http://localhost:3001/plantillas", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -32,7 +32,7 @@ const TemplatesPage = () => {
 
         const urlBase = template.portada?.url ?? template.portada;
         const portadaCompleta = urlBase
-          ? `http://localhost:3000${urlBase}?t=${Date.now()}`
+          ? `http://localhost:3001${urlBase}?t=${Date.now()}`
           : null;
 
         return {
@@ -57,7 +57,7 @@ const TemplatesPage = () => {
   }, [refreshTrigger]);
 
   const actualizarPortada = (idPlantilla, nuevaUrl) => {
-    const urlCacheBust = `http://localhost:3000${nuevaUrl}?t=${Date.now()}`;
+    const urlCacheBust = `http://localhost:3001${nuevaUrl}?t=${Date.now()}`;
 
     setTemplates(prev =>
       prev.map(t =>

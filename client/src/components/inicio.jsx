@@ -40,7 +40,7 @@ const Inicio = () => {
       const token = localStorage.getItem("token");
 
       // Traer plantillas
-      const resPlantillas = await fetch("http://localhost:3000/plantillas", {
+      const resPlantillas = await fetch("http://localhost:3001/plantillas", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -53,7 +53,7 @@ const Inicio = () => {
       let eventosData = [];
 
       try {
-        const resEventos = await fetch("http://localhost:3000/eventos/ver", {
+        const resEventos = await fetch("http://localhost:3001/eventos/ver", {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -83,7 +83,7 @@ const Inicio = () => {
         const urlBase = template.portada?.url ?? template.portada;
 
         const portadaCompleta = urlBase
-          ? `http://localhost:3000${urlBase}?t=${Date.now()}`
+          ? `http://localhost:3001${urlBase}?t=${Date.now()}`
           : null;
 
         return {
@@ -109,7 +109,7 @@ const Inicio = () => {
 
 
   const actualizarPortada = (idPlantilla, nuevaUrl) => {
-    const urlCacheBust = `http://localhost:3000${nuevaUrl}?t=${Date.now()}`;
+    const urlCacheBust = `http://localhost:3001${nuevaUrl}?t=${Date.now()}`;
 
     setTemplates((prev) =>
       prev.map((t) =>

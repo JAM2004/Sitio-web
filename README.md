@@ -66,7 +66,7 @@ PORTWEB=3000
 Importa la base con `login.sql` y arranca:
 
 ```powershell
-npm run dev     # nodemon → http://localhost:3000
+npm run dev     # nodemon → http://localhost:3001
 ```
 
 Client:

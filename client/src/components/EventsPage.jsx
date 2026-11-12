@@ -21,7 +21,7 @@ const EventsPage = () => {
 
   const obtenerEventos = async () => {
     try {
-      const response = await fetch("http://localhost:3000/eventos/ver", {
+      const response = await fetch("http://localhost:3001/eventos/ver", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -83,7 +83,7 @@ const EventsPage = () => {
         });
 
         res = await fetch(
-          `http://localhost:3000/eventos/editar/${eventoEditar.id_evento}`,
+          `http://localhost:3001/eventos/editar/${eventoEditar.id_evento}`,
           {
             method: "PATCH",
             headers: {
@@ -102,7 +102,7 @@ const EventsPage = () => {
         toast.success("Evento actualizado correctamente");
         refreshTemplates();
       } else {
-        res = await fetch("http://localhost:3000/eventos/crear", {
+        res = await fetch("http://localhost:3001/eventos/crear", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -136,7 +136,7 @@ const EventsPage = () => {
       const newStatus = isActive ? new Date().toISOString() : null;
 
       const res = await fetch(
-        `http://localhost:3000/eventos/toggle/${event.id_evento}`,
+        `http://localhost:3001/eventos/toggle/${event.id_evento}`,
         {
           method: "PATCH",
           headers: {

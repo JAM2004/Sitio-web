@@ -17,7 +17,7 @@ export default function EditorPage() {
     const cargarPlantilla = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:3000/plantillas/vista/${id}`, {
+        const res = await fetch(`http://localhost:3001/plantillas/vista/${id}`, {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`,
@@ -108,7 +108,7 @@ export default function EditorPage() {
     try {
       const token = localStorage.getItem("token");
       
-      await fetch(`http://localhost:3000/plantillas/${id}/estructura`, {
+      await fetch(`http://localhost:3001/plantillas/${id}/estructura`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

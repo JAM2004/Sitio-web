@@ -23,7 +23,7 @@ const handleFileChange = async (e) => {
 
   try {
     const res = await fetch(
-      `http://localhost:3000/componentes/${template.id_plantilla}/imagenes`,
+      `http://localhost:3001/componentes/${template.id_plantilla}/imagenes`,
       {
         method: "GET",
         headers: {
@@ -41,7 +41,7 @@ const handleFileChange = async (e) => {
     formData.append("orden", "1");
 
     const resUpload = await fetch(
-      `http://localhost:3000/componentes/${template.id_plantilla}/imagenes`,
+      `http://localhost:3001/componentes/${template.id_plantilla}/imagenes`,
       {
         method: "POST",
         headers: {
@@ -59,7 +59,7 @@ const handleFileChange = async (e) => {
     }
 
     const urlImagen = dataUpload.url;
-    const urlConTimestamp = `http://localhost:3000${urlImagen}?t=${Date.now()}`;
+    const urlConTimestamp = `http://localhost:3001${urlImagen}?t=${Date.now()}`;
 
     setPortadaLocal(urlConTimestamp);
 
@@ -82,7 +82,7 @@ const handleFileChange = async (e) => {
     }
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch( `http://localhost:3000/plantillas/${template.id_plantilla}`,
+      const res = await fetch( `http://localhost:3001/plantillas/${template.id_plantilla}`,
         {
           method: "DELETE",
           headers: {

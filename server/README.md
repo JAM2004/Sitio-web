@@ -55,7 +55,7 @@ Scripts útiles
 - `npm start` - arranca en modo producción: `node src/server.js`
 
 Endpoints principales
-(En todos los ejemplos `http://localhost:3000` asume `PORTWEB=3000`)
+(En todos los ejemplos `http://localhost:3001` asume `PORTWEB=3000`)
 
 1) Usuarios
 - `POST /usuarios/login` — login

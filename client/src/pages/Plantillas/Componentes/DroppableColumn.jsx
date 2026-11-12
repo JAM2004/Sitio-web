@@ -17,10 +17,41 @@ import {
 import CarouselBlock from "./CarouselBlock";
 import { Box, Button, Divider, Text } from "@chakra-ui/react";
 import "./DroppableColumn.css";
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, useSortable, rectSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// useSortable es un hook: no puede llamarse dentro de un .map, así que cada
+// bloque se envuelve en su propio componente. Sustituye al <Box>, no lo anida:
+// así el DOM y el layout no cambian en absoluto.
+function SortableBlock({ id, children, style, ...props }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  
+  return (
+    <Box
+      ref={setNodeRef}
+    {...props}
+    {...attributes}
+    {...listeners}
+    style={{
+      ...style,
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+      zIndex: isDragging ? 5 : undefined,
+    }}
+
+    >
+      {children}
+    </Box>
+  );
+}
 
 export default function DroppableColumn({ column, handleImageUpload, setSelectedBlock, isHeader, updateBlock, updateBlockContent, isEditingHeader, deleteBlock, selectedBlock }) {
+  const { setNodeRef } = useDroppable({ id: `c:${column.id }` });
+
   return (
-    <Box className={`column ${isHeader ? "header-column" : ""}`}
+    <Box ref={setNodeRef} className={`column ${isHeader ? "header-column" : ""}`}
       w="100%"
       h="100%"
       display="flex"
@@ -28,10 +59,12 @@ export default function DroppableColumn({ column, handleImageUpload, setSelected
       alignItems="center"
       justifyContent={isHeader ? "center" : "flex-start"}
       gap={isHeader ? 6 : 2}>
+
+      <SortableContext items={column.blocks.map((b) => `b:${b.id}`)} strategy={rectSortingStrategy}>
       {column.blocks.map((block) => {
         if (block.type === "hero") {
           return (
-            <Box key={block.id} className="hero-wrapper" w="100%">
+            <SortableBlock key={block.id} id={`b:${block.id}`} className="hero-wrapper" w="100%">
               <HStack spacing={10} align="start">
                 <Box flex="1">
                   <Text
@@ -45,14 +78,15 @@ export default function DroppableColumn({ column, handleImageUpload, setSelected
                   </Text>
                 </Box>
               </HStack>
-            </Box>
+            </SortableBlock>
           );
         }
 
         if (block.type === "menu-item") {
           return (
-            <Box
+            <SortableBlock
               key={block.id}
+              id={`b:${block.id}`}
               className="menu-item"
               display="flex"
               alignItems="center"
@@ -73,13 +107,14 @@ export default function DroppableColumn({ column, handleImageUpload, setSelected
               >
                 {block.content}
               </Text>
-            </Box>
+            </SortableBlock>
           );
         }
 
         return (
-          <Box
+          <SortableBlock
             key={block.id}
+            id={`b:${block.id}`}
             className="block editable-block"
             w="100%"
             position="relative"
@@ -401,9 +436,10 @@ export default function DroppableColumn({ column, handleImageUpload, setSelected
                   {block.content}</Text>
               </Box>
             )}
-          </Box>
+          </SortableBlock>
         );
       })}
+      </SortableContext>
     </Box>
   );
 }

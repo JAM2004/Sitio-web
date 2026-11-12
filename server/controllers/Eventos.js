@@ -172,8 +172,6 @@ export const editarEvento = async (req, res) => {
       await conn.rollback();
       return res.status(404).json({ error: 'Evento no encontrado o eliminado' });
     }
-    
-
   const act = [];
     const value = [];
     if (titulo !== undefined) { act.push('titulo = ?'); value.push(titulo); }

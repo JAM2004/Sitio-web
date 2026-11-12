@@ -60,7 +60,7 @@ export default function PublicEventPage() {
   useEffect(() => {
     const loadPage = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/pagina/${slug}`);
+        const res = await fetch(`http://localhost:3001/pagina/${slug}`);
 
         if (!res.ok) {
           setMessage("Página no encontrada");

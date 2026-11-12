@@ -50,7 +50,7 @@ export default function TemplateReadOnly() {
     const load = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:3000/plantillas/vista/${id}`, {
+        const res = await fetch(`http://localhost:3001/plantillas/vista/${id}`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,

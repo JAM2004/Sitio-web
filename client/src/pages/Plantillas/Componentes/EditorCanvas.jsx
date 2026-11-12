@@ -35,6 +35,10 @@ import CarouselBlock from "./CarouselBlock";
 import DroppableColumn from "./DroppableColumn";
 import SidebarEditor from "./SidebarEditor";
 import { getDefaultStructure } from "./estructuraDefault";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
 
 const getEditorDataKey = (plantillaId) => `editorData_${plantillaId}`;
 
@@ -48,6 +52,96 @@ const normalizeInitialSections = (initialData) => {
 const isValidSections = (candidate) => {
   return Array.isArray(candidate) && candidate.length > 0 && candidate.every((section) => section && Array.isArray(section.columns));
 };
+
+function SortableSection({ id, children, style, ...props }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  return (
+    <Box
+      ref={setNodeRef}
+      {...props}
+      {...attributes}
+      {...listeners}
+      style={{
+        ...style,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 5 : undefined,
+      }}
+
+    >
+      {children}
+    </Box>
+  );
+}
+// --- Arrastre de bloques ---
+// Los ids de bloque/columna van prefijados ("b:" / "c:") para no chocar con los
+// de las secciones (números o "header"/"footer").
+
+// Al arrastrar un bloque solo se puede soltar sobre bloques/columnas, y al
+// arrastrar una sección solo sobre secciones. Sin este filtro, closestCenter
+// compara centros y la sección (enorme) gana casi siempre: el bloque se movería
+// y además reordenaría la sección por error.  
+const collisionPorTipo = ({ droppableContainers, ...args }) => {
+  const esBloque = String(args.active.id).startsWith("b:");
+  const permitidos = droppableContainers.filter((c) => {
+    const id = String(c.id);
+    const esDeBloque = id.startsWith("b:") || id.startsWith("c:");
+    return esBloque ? esDeBloque : !esDeBloque;
+  });
+  return closestCenter({ ...args, droppableContainers: permitidos });
+};
+
+const buscarBloque = (sections, id) => {
+  for (const s of sections) {
+    for (const c of s.columns) {
+      const i = c.blocks.findIndex((b) => String(b.id) === id);
+      if (i >= 0) return { col: c, i };
+    }
+  }
+  return null;
+};
+// Quita el bloque de su columna y lo inserta en la destino: en la posición
+// exacta del bloque sobre el que se suelta, o al final si se suelta en la columna
+const moverBloque = (secciones, idBloque, idDestino) => {
+  const origen = buscarBloque(secciones, idBloque);
+  if (!origen) return secciones;
+
+  let destino;
+  if (idDestino.startsWith("c:")) {
+    const col = secciones.flatMap((s) => s.columns).find((c) => String(c.id) === idDestino.slice(2));
+    if (!col) return secciones;
+    destino = { col, i: col.blocks.length };
+  } else if (idDestino.startsWith("b:")) {
+    destino = buscarBloque(secciones, idDestino.slice(2));
+    if (!destino) return secciones;
+  } else {
+    return secciones;
+  }
+
+  const bloque = origen.col.blocks[origen.i];
+
+  if (origen.col === destino.col) {
+    const bloques = origen.col.blocks.filter((_, i) => i !== origen.i);
+    const indice = destino.i - (origen.i < destino.i ? 1 : 0);
+    bloques.splice(indice, 0, bloque);
+    const nueva = { ...origen.col, blocks: bloques };
+    return secciones.map((s) => ({ ...s, columns: s.columns.map((c) => (c === origen.col ? nueva : c)) }));
+  }
+  const enOrigen = { ...origen.col, blocks: origen.col.blocks.filter((_, i) => i !== origen.i) };
+  const enDestino = { ...destino.col, blocks: [...destino.col.blocks] };
+  enDestino.blocks.splice(destino.i, 0, bloque);
+
+  return secciones.map((s) => ({
+    ...s,
+    columns: s.columns.map((c) => {
+      if (c === origen.col) return enOrigen;
+      if (c === destino.col) return enDestino;
+      return c;
+    }),
+  }));
+}
 
 export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl }) {
   const toast = useToast();
@@ -82,6 +176,33 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
   const [selectedSection, setSelectedSection] = useState(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState(null);
+
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  );
+
+  const handleDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    if (String(active.id).startsWith("b:")) {
+      const idBloque = String(active.id).slice(2);
+      const idDestino = String(over.id);
+      setSections((prev) => moverBloque(prev, idBloque, idDestino));
+      return;
+    }
+    if (over.id === "header" || over.id === "footer") return;
+
+    setSections((prev) => {
+      const movibles = prev.filter((s) => s.id !== "header" && s.id !== "footer");
+      const from = movibles.findIndex((s) => s.id === active.id);
+      const to = movibles.findIndex((s) => s.id === over.id);
+    if (from < 0 || to < 0) return prev;
+
+    const reordenadas = arrayMove(movibles, from, to);
+    let i = 0;
+    return prev.map((s) => (s.id === "header" || s.id === "footer" ? s : reordenadas[i++]));
+    });
+  };
 
   // Cargar datos cuando cambia plantillaId o initialData
   useEffect(() => {
@@ -379,92 +500,92 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
     const filtered = sections.filter((sec) => sec.id !== sectionToDelete);
     setSections(filtered);
 
-  toast({
-    title: "Sección eliminada",
-    description: "La sección se eliminó correctamente",
-    status: "success",
-    duration: 3000,
-    isClosable: true,
-  });
-
-  setSectionToDelete(null); 
-};
-
-const uploadImage = async (file, tipo = "galeria") => {
-  if (!file || !plantillaId) return null;
-
-  const formData = new FormData();
-  formData.append("imagen", file);
-  formData.append("tipo", tipo);
-
-  try {
-    const res = await fetch(
-      `http://localhost:3000/componentes/${plantillaId}/imagenes`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: formData,
-      }
-    );
-
-    if (!res.ok) {
-      throw new Error("Error subiendo imagen");
-    }
-
-    const data = await res.json();
-
-    return data.url.startsWith("http")
-      ? data.url
-      : `http://localhost:3000${data.url}`;
-
-  } catch (error) {
-    console.error(error);
-
     toast({
-      title: "Error",
-      description: "No se pudo subir la imagen",
-      status: "error",
+      title: "Sección eliminada",
+      description: "La sección se eliminó correctamente",
+      status: "success",
       duration: 3000,
       isClosable: true,
     });
 
-    return null;
-  }
-};
+    setSectionToDelete(null);
+  };
 
-const handleImageUpload = async (blockId, file) => {
-  if (!file) return;
+  const uploadImage = async (file, tipo = "galeria") => {
+    if (!file || !plantillaId) return null;
 
-  const imageUrl = await uploadImage(file, "galeria");
+    const formData = new FormData();
+    formData.append("imagen", file);
+    formData.append("tipo", tipo);
 
-  if (!imageUrl) return;
+    try {
+      const res = await fetch(
+        `http://localhost:3001/componentes/${plantillaId}/imagenes`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: formData,
+        }
+      );
 
-  const newSections = sections.map((section) => ({
-    ...section,
-    columns: section.columns.map((col) => ({
-      ...col,
-      blocks: col.blocks.map((block) =>
-        block.id === blockId
-          ? {
+      if (!res.ok) {
+        throw new Error("Error subiendo imagen");
+      }
+
+      const data = await res.json();
+
+      return data.url.startsWith("http")
+        ? data.url
+        : `http://localhost:3001${data.url}`;
+
+    } catch (error) {
+      console.error(error);
+
+      toast({
+        title: "Error",
+        description: "No se pudo subir la imagen",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      return null;
+    }
+  };
+
+  const handleImageUpload = async (blockId, file) => {
+    if (!file) return;
+
+    const imageUrl = await uploadImage(file, "galeria");
+
+    if (!imageUrl) return;
+
+    const newSections = sections.map((section) => ({
+      ...section,
+      columns: section.columns.map((col) => ({
+        ...col,
+        blocks: col.blocks.map((block) =>
+          block.id === blockId
+            ? {
               ...block,
               src: imageUrl,
             }
-          : block
-      ),
-    })),
-  }));
+            : block
+        ),
+      })),
+    }));
 
-  setSections(newSections);
+    setSections(newSections);
 
-  toast({
-    title: "Imagen subida",
-    status: "success",
-    duration: 2000,
-    isClosable: true,
-  });
-};
+    toast({
+      title: "Imagen subida",
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+    });
+  };
 
   const handleLogoUpload = async (file, tipo = "logo", orden = 0) => {
     if (!file) return;
@@ -486,7 +607,7 @@ const handleImageUpload = async (blockId, file) => {
 
     try {
       const res = await fetch(
-        `http://localhost:3000/componentes/${plantillaId}/imagenes`,
+        `http://localhost:3001/componentes/${plantillaId}/imagenes`,
         {
           method: "POST",
           headers: {
@@ -504,7 +625,7 @@ const handleImageUpload = async (blockId, file) => {
       const imageUrl = data.url
         ? data.url.startsWith("http")
           ? data.url
-          : `http://localhost:3000${data.url}`
+          : `http://localhost:3001${data.url}`
         : "";
 
       const newSections = sections.map((section) => {
@@ -582,7 +703,7 @@ const handleImageUpload = async (blockId, file) => {
     try {
       console.log("Guardando plantilla con estructura:", sections);
       const response = await fetch(
-        `http://localhost:3000/plantillas/${plantillaId}/estructura`,
+        `http://localhost:3001/plantillas/${plantillaId}/estructura`,
         {
           method: "PATCH",
           headers: {
@@ -743,231 +864,237 @@ const handleImageUpload = async (blockId, file) => {
       <Divider borderColor="gray.300" opacity={0.5} />
 
       <VStack spacing={0} align="stretch" w="100%">
-        {sections.map((section) => (
-          <Box
-            key={section.id}
-            className={`section-wrapper hover-parent ${section.type === "header" ? "header" : ""}`}
-            bg={section.backgroundColor}
-            color={section.textColor || "#000000"}
-            width="100%"
-            pt={section.fullWidth ? 0 : section.type === "header" ? 4 : 2}
-            pb={section.fullWidth ? 0 : 6}
-            px={section.fullWidth ? 0 : 6}
-            position="relative"
-            minH={
-              section.type === "header"
-                ? "80px"
-                : section.columns[0].blocks.length === 0
-                  ? "380px"
-                  : "auto"
-            }
-            style={{
-              "--menu-hover-color": section.hoverColor || "#5c5c5c"
-            }} >
-            <Box className="hover-menu"
-              position="absolute"
-              top="10px"
-              right="10px"
-              bg="#3a3a3a"
-              borderRadius="md"
-              display="flex"
-              overflow="hidden"
-              zIndex="10"
-            >
-              <Button
-                size="xs"
-                bg="transparent"
-                color="white"
-                _hover={{ bg: "#4a4a4a" }}
-                borderRadius="0"
-                onClick={() => openSectionEditor(section.id)}
-              >
-                <FiEdit />
-              </Button>
-              {section.id !== "header" && section.id !== "footer" && (
-                <Button
-                  size="xs"
-                  bg="transparent"
-                  color="white"
-                  _hover={{ bg: "#4a4a4a" }}
-                  borderRadius="0"
-                  onClick={() => setSectionToDelete(section.id)}
-                >
-                  <FiTrash2 />
-                </Button>
-              )}
-            </Box>
-
-            {section.id !== "header" && section.id !== "footer" && (
-              <div className="add-section-hover">
-                <Button
-                  size="sm"
-                  bg="#007bff"
-                  color="white"
-                  _hover={{
-                    bg: "#0063cc",
-                  }}
-                  onClick={() => {
-                    setTargetSectionId(section.id);
-                    setSectionSelectorOpen(true);
-                  }}
-                >
-                  + Agregar sección
-                </Button>
-              </div>
-            )}
-
-            {section.type === "header" ? (
-              <HStack
-                w="100%"
-                h="80px"
-                align="center"
-                justify="space-between"
-                px={6}
-              >
-                <Box minW="140px" maxW="160px">
-                  <DroppableColumn
-                    column={section.columns[0]}
-                    isHeader
-                    setSelectedBlock={setSelectedBlock}
-                    updateBlockContent={updateBlockContent}
-                    isEditingHeader={
-                      isSidebarOpen && selectedSection?.id === section.id
-                    }
-                  />
-                </Box>
-                <HStack
-                  className="menu-desktop"
-                  spacing={6}
-                  h="100%"
-                  align="stretch"
-                  justify="center"
-                  flex="1"
-                >
-                  <DroppableColumn
-                    column={section.columns[1]}
-                    isHeader
-                    setSelectedBlock={setSelectedBlock}
-                    updateBlockContent={updateBlockContent}
-                    isEditingHeader={
-                      isSidebarOpen && selectedSection?.id === section.id
-                    }
-                  />
-                </HStack>
-
-            <Box className="menu-mobile-btn">☰</Box>
-          </HStack>
-        ) : (
-          <HStack justify="space-between"
-          spacing={section.fullWidth ? 0 : 6}
-          w="100%">
-            {section.columns.map((column) => (
-              <DroppableColumn
-                key={column.id}
-                column={column}
-                handleImageUpload={handleImageUpload}
-                isHeader={section.type === "header"}
-                updateBlock={updateBlock}
-                setSelectedBlock={setSelectedBlock}
-                selectedBlock={selectedBlock}
-                updateBlockContent={updateBlockContent}
-                isEditingHeader={
-                  isSidebarOpen && selectedSection?.id === section.id
+        <DndContext sensors={sensors} collisionDetection={collisionPorTipo} onDragEnd={handleDragEnd}>
+          <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+            {sections.map((section) => (
+              <SortableSection
+                id={section.id}
+                key={section.id}
+                className={`section-wrapper hover-parent ${section.type === "header" ? "header" : ""}`}
+                bg={section.backgroundColor}
+                color={section.textColor || "#000000"}
+                width="100%"
+                pt={section.fullWidth ? 0 : section.type === "header" ? 4 : 2}
+                pb={section.fullWidth ? 0 : 6}
+                px={section.fullWidth ? 0 : 6}
+                position="relative"
+                minH={
+                  section.type === "header"
+                    ? "80px"
+                    : section.columns[0].blocks.length === 0
+                      ? "380px"
+                      : "auto"
                 }
-                deleteBlock={deleteBlock}
-              />
-            ))}
-          </HStack>
-        )}
-          </Box>
-        ))}
-        <SidebarEditor
-          isOpen={isSidebarOpen}
-          selectedBlock={selectedBlock}
-          updateBlock={updateBlock}
-          onClose={closeSidebar}
-          selectedSection={selectedSection}
-          sections={sections}
-          setSections={setSections}
-          addBlockToSection={addBlockToSection}
-          updateMenuItem={updateMenuItem}
-          deleteMenuItem={deleteMenuItem}
-          handleCarouselUpload={handleCarouselUpload}
-          handleLogoUpload={handleLogoUpload}
-          removeLogo={removeLogo}
-          updateSectionColor={updateSectionColor}
-          updateTextColor={updateTextColor}
-          updateHoverColor={updateHoverColor}
-        />
-        <AlertDialog
-          isOpen={!!sectionToDelete}
-          leastDestructiveRef={cancelRef}
-          onClose={() => setSectionToDelete(null)}
-          isCentered
-        >
-          <AlertDialogOverlay>
-            <AlertDialogContent>
-              <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                Eliminar sección
-              </AlertDialogHeader>
-
-              <AlertDialogBody>
-                ¿Estás seguro de que quieres eliminar esta sección? Esta acción no se puede deshacer.
-              </AlertDialogBody>
-
-              <AlertDialogFooter>
-                <Button ref={cancelRef} onClick={() => setSectionToDelete(null)}>
-                  Cancelar
-                </Button>
-
-                <Button colorScheme="red" onClick={confirmDeleteSection} ml={3}>
-                  Eliminar
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialogOverlay>
-        </AlertDialog>
-        <Modal
-          isOpen={isSectionSelectorOpen}
-          onClose={() => setSectionSelectorOpen(false)}
-          size="6xl"
-        >
-          <ModalContent>
-            <ModalHeader>Agregar una sección</ModalHeader>
-            <ModalCloseButton />
-
-            <ModalBody>
-              <HStack align="start" spacing={6}>
-
-                <VStack align="start" minW="200px">
-                  <Text fontWeight="bold">Secciones</Text>
-                  <Button variant="ghost">Todas las secciones</Button>
-                </VStack>
-
-                <Box flex="1">
-                  <HStack wrap="wrap" spacing={4}>
-                    <Box
-                      border="1px solid #ddd"
-                      p={4}
-                      cursor="pointer"
-                      onClick={() => addTemplateSection("hero")}
+                style={{
+                  "--menu-hover-color": section.hoverColor || "#5c5c5c"
+                }} >
+                <Box className="hover-menu"
+                  position="absolute"
+                  top="10px"
+                  right="10px"
+                  bg="#3a3a3a"
+                  borderRadius="md"
+                  display="flex"
+                  overflow="hidden"
+                  zIndex="10"
+                >
+                  <Button
+                    size="xs"
+                    bg="transparent"
+                    color="white"
+                    _hover={{ bg: "#4a4a4a" }}
+                    borderRadius="0"
+                    onClick={() => openSectionEditor(section.id)}
+                  >
+                    <FiEdit />
+                  </Button>
+                  {section.id !== "header" && section.id !== "footer" && (
+                    <Button
+                      size="xs"
+                      bg="transparent"
+                      color="white"
+                      _hover={{ bg: "#4a4a4a" }}
+                      borderRadius="0"
+                      onClick={() => setSectionToDelete(section.id)}
                     >
-                      <Text>Sección en blanco</Text>
+                      <FiTrash2 />
+                    </Button>
+                  )}
+                </Box>
+
+                {section.id !== "header" && section.id !== "footer" && (
+                  <div className="add-section-hover">
+                    <Button
+                      size="sm"
+                      bg="#007bff"
+                      color="white"
+                      _hover={{
+                        bg: "#0063cc",
+                      }}
+                      onClick={() => {
+                        setTargetSectionId(section.id);
+                        setSectionSelectorOpen(true);
+                      }}
+                    >
+                      + Agregar sección
+                    </Button>
+                  </div>
+                )}
+
+                {section.type === "header" ? (
+                  <HStack
+                    w="100%"
+                    h="80px"
+                    align="center"
+                    justify="space-between"
+                    px={6}
+                  >
+                    <Box minW="140px" maxW="160px">
+                      <DroppableColumn
+                        column={section.columns[0]}
+                        isHeader
+                        setSelectedBlock={setSelectedBlock}
+                        updateBlockContent={updateBlockContent}
+                        isEditingHeader={
+                          isSidebarOpen && selectedSection?.id === section.id
+                        }
+                      />
                     </Box>
-                    <Box
-                      border="1px solid #ddd"
-                      p={4}
-                      cursor="pointer"
-                      onClick={() => addTemplateSection("carousel-full")}
+                    <HStack
+                      className="menu-desktop"
+                      spacing={6}
+                      h="100%"
+                      align="stretch"
+                      justify="center"
+                      flex="1"
                     >
-                      <Text>Carousel</Text>
+                      <DroppableColumn
+                        column={section.columns[1]}
+                        isHeader
+                        setSelectedBlock={setSelectedBlock}
+                        updateBlockContent={updateBlockContent}
+                        isEditingHeader={
+                          isSidebarOpen && selectedSection?.id === section.id
+                        }
+                      />
+                    </HStack>
+
+                    <Box className="menu-mobile-btn">☰</Box>
+                  </HStack>
+                ) : (
+                  <HStack justify="space-between"
+                    spacing={section.fullWidth ? 0 : 6}
+                    w="100%">
+                    {section.columns.map((column) => (
+                      <DroppableColumn
+                        key={column.id}
+                        column={column}
+                        handleImageUpload={handleImageUpload}
+                        isHeader={section.type === "header"}
+                        updateBlock={updateBlock}
+                        setSelectedBlock={setSelectedBlock}
+                        selectedBlock={selectedBlock}
+                        updateBlockContent={updateBlockContent}
+                        isEditingHeader={
+                          isSidebarOpen && selectedSection?.id === section.id
+                        }
+                        deleteBlock={deleteBlock}
+                      />
+                    ))}
+                  </HStack>
+                )}
+              </SortableSection>
+            ))}
+            <SidebarEditor
+              isOpen={isSidebarOpen}
+              selectedBlock={selectedBlock}
+              updateBlock={updateBlock}
+              onClose={closeSidebar}
+              selectedSection={selectedSection}
+              sections={sections}
+              setSections={setSections}
+              addBlockToSection={addBlockToSection}
+              updateMenuItem={updateMenuItem}
+              deleteMenuItem={deleteMenuItem}
+              handleCarouselUpload={handleCarouselUpload}
+              handleLogoUpload={handleLogoUpload}
+              removeLogo={removeLogo}
+              updateSectionColor={updateSectionColor}
+              updateTextColor={updateTextColor}
+              updateHoverColor={updateHoverColor}
+            />
+            <AlertDialog
+              isOpen={!!sectionToDelete}
+              leastDestructiveRef={cancelRef}
+              onClose={() => setSectionToDelete(null)}
+              isCentered
+            >
+              <AlertDialogOverlay>
+                <AlertDialogContent>
+                  <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                    Eliminar sección
+                  </AlertDialogHeader>
+
+                  <AlertDialogBody>
+                    ¿Estás seguro de que quieres eliminar esta sección? Esta acción no se puede deshacer.
+                  </AlertDialogBody>
+
+                  <AlertDialogFooter>
+                    <Button ref={cancelRef} onClick={() => setSectionToDelete(null)}>
+                      Cancelar
+                    </Button>
+
+                    <Button colorScheme="red" onClick={confirmDeleteSection} ml={3}>
+                      Eliminar
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialogOverlay>
+            </AlertDialog>
+            <Modal
+              isOpen={isSectionSelectorOpen}
+              onClose={() => setSectionSelectorOpen(false)}
+              size="6xl"
+            >
+              <ModalContent>
+                <ModalHeader>Agregar una sección</ModalHeader>
+                <ModalCloseButton />
+
+                <ModalBody>
+                  <HStack align="start" spacing={6}>
+
+                    <VStack align="start" minW="200px">
+                      <Text fontWeight="bold">Secciones</Text>
+                      <Button variant="ghost">Todas las secciones</Button>
+                    </VStack>
+
+                    <Box flex="1">
+                      <HStack wrap="wrap" spacing={4}>
+                        <Box
+                          border="1px solid #ddd"
+                          p={4}
+                          cursor="pointer"
+                          onClick={() => addTemplateSection("hero")}
+                        >
+                          <Text>Sección en blanco</Text>
+                        </Box>
+                        <Box
+                          border="1px solid #ddd"
+                          p={4}
+                          cursor="pointer"
+                          onClick={() => addTemplateSection("carousel-full")}
+                        >
+                          <Text>Carousel</Text>
+                        </Box>
+                      </HStack>
                     </Box>
                   </HStack>
-                </Box>
-              </HStack>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
+                </ModalBody>
+              </ModalContent>
+            </Modal>
+
+          </SortableContext>
+        </DndContext>
       </VStack>
     </Box>
   );

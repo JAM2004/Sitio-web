@@ -27,7 +27,7 @@ const Usuarios = () => {
 
   const obtenerUsuarios = async () => {
     try {
-      const respuesta = await fetch("http://localhost:3000/usuarios", {
+      const respuesta = await fetch("http://localhost:3001/usuarios", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -101,7 +101,7 @@ const Usuarios = () => {
         rol: datosDelModal.id_rol,
       };
 
-      const respuesta = await fetch("http://localhost:3000/registerUsers", {
+      const respuesta = await fetch("http://localhost:3001/registerUsers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -133,7 +133,7 @@ const Usuarios = () => {
       };
 
       const respuesta = await fetch(
-        "http://localhost:3000/usuarios/cambiar-pass",
+        "http://localhost:3001/usuarios/cambiar-pass",
         {
           method: "PATCH",
           headers: {
@@ -168,7 +168,7 @@ const Usuarios = () => {
 
     try {
       const respuesta = await fetch(
-        `http://localhost:3000/usuarios/${usuario.ID_User}/reset-pass`,
+        `http://localhost:3001/usuarios/${usuario.ID_User}/reset-pass`,
         {
           method: "PATCH",
           headers: {
@@ -205,7 +205,7 @@ const Usuarios = () => {
 
     try {
       const respuesta = await fetch(
-        `http://localhost:3000/usuarios/${id}/status`,
+        `http://localhost:3001/usuarios/${id}/status`,
         {
           method: "PATCH",
           headers: {
