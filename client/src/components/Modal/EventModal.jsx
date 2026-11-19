@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import "./Modal.css";
+import "./modal.css";
 
 const formatDateForInput = (dateString) => {
   if (!dateString) return "";

@@ -11,7 +11,6 @@ import Plantillas from "./pages/Plantillas/TemplatePage.jsx";
 import EditorPage from "./pages/Plantillas/EditorPage.jsx";
 import TemplateReadOnly from "./pages/Plantillas/TemplateReadOnly.jsx";
 import PublicEventPage from "./pages/PublicEventPage.jsx";
-//import addUserMmodal from "./components/Modal/Modal.jsx"; 
 import "./App.css";
 
 // Sin token no hay panel: manda al login (y devuelve aquí al cerrar sesión)

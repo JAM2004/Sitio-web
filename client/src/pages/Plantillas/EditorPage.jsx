@@ -2,7 +2,7 @@ import { Flex, Box } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import EditorCanvas from "./Componentes/EditorCanvas";
-import { getDefaultStructure } from "./Componentes/estructuraDefault"; 
+import { getDefaultStructure } from "./Componentes/EstructuraDefault"; 
 
 export default function EditorPage() {
   const { id } = useParams();

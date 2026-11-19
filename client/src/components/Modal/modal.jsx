@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "./Modal.css";
+import "./modal.css";
 
 const UserModal = ({ isOpen, onClose, onSubmit, usuarioAEditar }) => {
   // 1. ESTADO: Agregamos currentPassword y confirmPassword

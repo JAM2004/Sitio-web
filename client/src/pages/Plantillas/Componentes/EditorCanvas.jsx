@@ -34,7 +34,7 @@ import { FiEdit, FiTrash2 } from "react-icons/fi";
 import CarouselBlock from "./CarouselBlock";
 import DroppableColumn from "./DroppableColumn";
 import SidebarEditor from "./SidebarEditor";
-import { getDefaultStructure } from "./estructuraDefault";
+import { getDefaultStructure } from "./EstructuraDefault";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";

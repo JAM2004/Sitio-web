@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./usuarios.css";
-import UserModal from "../../components/Modal/Modal.jsx";
-import Search from "../../components/Searchbar/Search.jsx";
+import UserModal from "../../components/Modal/modal.jsx";
+import Search from "../../components/SearchBar/Search.jsx";
 import { Toaster, toast } from "sonner";
 
 const Usuarios = () => {
