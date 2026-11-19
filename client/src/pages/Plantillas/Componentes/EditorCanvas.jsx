@@ -519,7 +519,7 @@ const uploadImage = async (file, tipo = "galeria") => {
 
   try {
     const res = await fetch(
-      `http://localhost:3001/componentes/${plantillaId}/imagenes`,
+      `/api/componentes/${plantillaId}/imagenes`,
       {
         method: "POST",
         headers: {
@@ -535,9 +535,7 @@ const uploadImage = async (file, tipo = "galeria") => {
 
     const data = await res.json();
 
-    return data.url.startsWith("http")
-      ? data.url
-      : `http://localhost:3001${data.url}`;
+    return data.url;
 
   } catch (error) {
     console.error(error);
@@ -606,7 +604,7 @@ const handleLogoUpload = async (file, tipo = "logo", orden = 0) => {
 
   try {
     const res = await fetch(
-      `http://localhost:3001/componentes/${plantillaId}/imagenes`,
+      `/api/componentes/${plantillaId}/imagenes`,
       {
         method: "POST",
         headers: {
@@ -621,11 +619,7 @@ const handleLogoUpload = async (file, tipo = "logo", orden = 0) => {
     }
 
     const data = await res.json();
-    const imageUrl = data.url
-      ? data.url.startsWith("http")
-        ? data.url
-        : `http://localhost:3001${data.url}`
-      : "";
+    const imageUrl = data.url || "";
 
     const newSections = sections.map((section) => {
       if (section.type !== "header") return section;
@@ -702,7 +696,7 @@ const handleSave = async () => {
   try {
     console.log("Guardando plantilla con estructura:", sections);
     const response = await fetch(
-      `http://localhost:3001/plantillas/${plantillaId}/estructura`,
+      `/api/plantillas/${plantillaId}/estructura`,
       {
         method: "PATCH",
         headers: {
