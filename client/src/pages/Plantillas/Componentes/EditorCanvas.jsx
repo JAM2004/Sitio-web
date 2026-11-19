@@ -197,19 +197,7 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
 
   const [sections, setSections] = useState(() => {
     const dataKey = getEditorDataKey(plantillaId);
-    const saved = localStorage.getItem(dataKey);
     const normalized = normalizeInitialSections(initialData);
-
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (isValidSections(parsed)) {
-          return parsed;
-        }
-      } catch {
-        // ignore invalid saved data
-      }
-    }
 
     return normalized && isValidSections(normalized) ? normalized : getDefaultStructure();
   });
@@ -252,31 +240,16 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
   };
 
   // Cargar datos cuando cambia plantillaId o initialData
+  // *sin borrador local — lo que trae el servidor es lo único que se edita.
   useEffect(() => {
-    const dataKey = getEditorDataKey(plantillaId);
-    const saved = localStorage.getItem(dataKey);
-
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (isValidSections(parsed)) {
-          setSections(parsed);
-          return;
-        }
-      } catch {
-        // ignore invalid saved data
-      }
-    }
-
     const normalized = normalizeInitialSections(initialData);
     setSections(normalized && isValidSections(normalized) ? normalized : getDefaultStructure());
   }, [plantillaId, initialData]);
-
-  // Guardar en localStorage cuando sections cambia (después de cargar inicial)
+ // Borra los borradores que dejaron versiones anteriores (ya no se escriben)
   useEffect(() => {
-    const dataKey = getEditorDataKey(plantillaId);
-    localStorage.setItem(dataKey, JSON.stringify(sections));
-  }, [sections, plantillaId]);
+    localStorage.removeItem(getEditorDataKey(plantillaId));
+    localStorage.removeItem("editorData");
+  }, [plantillaId]);
 
   const updateBlockContent = (blockId, value) => {
     const cleanValue = value.replace(/\r/g, "");
@@ -334,10 +307,6 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
 
     setSections(newSections);
   };
-
-  useEffect(() => {
-    localStorage.setItem("editorData", JSON.stringify(sections));
-  }, [sections]);
 
   const openSectionEditor = (sectionId) => {
     setSelectedSection(sections.find((s) => s.id === sectionId));
@@ -450,10 +419,6 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
   };
   const handleCarouselUpload = async (blockId, file, index) => {
     if (!file) return;
-
-    // Al servidor, igual que portada/galería/logo: un dataURL base64 dentro del
-    // JSON de la plantilla haría pesado cada tecla (el borrador de localStorage
-    // se re-serializa en cada cambio) y cada guardado.
     const url = await uploadImage(file, "carousel");
     if (!url) return;
 
@@ -753,8 +718,6 @@ const handleSave = async () => {
       throw new Error("Error al guardar la plantilla");
     }
 
-    const dataKey = getEditorDataKey(plantillaId);
-    localStorage.setItem(dataKey, JSON.stringify(sections));
     toast({
       title: "Éxito",
       description: "Plantilla guardada correctamente",
