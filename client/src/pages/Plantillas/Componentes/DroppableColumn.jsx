@@ -47,7 +47,7 @@ function SortableBlock({ id, children, style, ...props }) {
   );
 }
 
-export default function DroppableColumn({ column, handleImageUpload, setSelectedBlock, isHeader, updateBlock, updateBlockContent, isEditingHeader, deleteBlock, selectedBlock }) {
+export default function DroppableColumn({ column, handleImageUpload, handleCarouselUpload, setSelectedBlock, isHeader, updateBlock, updateBlockContent, isEditingHeader, deleteBlock, selectedBlock }) {
   const { setNodeRef } = useDroppable({ id: `c:${column.id }` });
 
   return (
@@ -407,7 +407,8 @@ export default function DroppableColumn({ column, handleImageUpload, setSelected
             {block.type === "carousel" && (
               <CarouselBlock
                 block={block}
-                updateBlockContent={updateBlockContent}
+                updateBlock={updateBlock}
+                handleCarouselUpload={handleCarouselUpload}
               />)}
             {block.type === "spacer" && <Box h="20px" />}
             {block.type === "heading" && (

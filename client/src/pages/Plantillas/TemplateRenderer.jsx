@@ -1,5 +1,6 @@
 import React from "react";
-import { Box, Heading, Text, Button, VStack, HStack, Wrap, WrapItem, Image, Divider } from "@chakra-ui/react";
+import { Box, Heading, Text, Button, VStack, HStack, Image, Divider } from "@chakra-ui/react";
+import CarouselBlock from "./Componentes/CarouselBlock"
 
 const TemplateRenderer = ({ estructura }) => {
   if (!estructura || !estructura.sections) {
@@ -76,27 +77,7 @@ const TemplateRenderer = ({ estructura }) => {
         );
       case "carousel":
         return (
-          <Wrap key={key} spacing={4} mb={4} overflowX="auto" py={2}>
-            {Array.isArray(block.content)
-              ? block.content.map((src, index) => (
-                  <WrapItem key={`${key}-${index}`}>
-                    <Image
-                      src={src}
-                      alt={`carousel-${index}`}
-                      maxH="300px"
-                      borderRadius="lg"
-                    />
-                  </WrapItem>
-                ))
-              : (
-                  <Image
-                    src={block.content}
-                    alt="carousel"
-                    maxH="300px"
-                    borderRadius="lg"
-                  />
-                )}
-          </Wrap>
+          <CarouselBlock key={key} block={block} soloLectura />
         );
       case "divider":
         return <Divider key= {key} my ={2} />;

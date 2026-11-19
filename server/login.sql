@@ -27,7 +27,7 @@ CREATE TABLE `evento_imagenes` (
   `plantillas_id_plantilla` int NOT NULL,
   `url_imagen` varchar(500) NOT NULL,
   `alt_text` varchar(255) DEFAULT NULL,
-  `tipo` enum('portada','galeria','fondo','logo') DEFAULT NULL,
+  `tipo` enum('portada','galeria','fondo','logo','carousel') DEFAULT NULL,
   `orden` int DEFAULT '0',
   PRIMARY KEY (`id_imagen`),
   KEY `plantillas_id_plantilla` (`plantillas_id_plantilla`),
