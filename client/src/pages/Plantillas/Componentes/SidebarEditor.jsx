@@ -25,8 +25,30 @@ import {
   FiAlignRight,
 } from "react-icons/fi";
 import { useState } from "react";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities"
 import ColorPicker from "./ColorPicker";
 
+// Cada botón de la paleta es a la vez clicable (como hasta ahora) y arrastrable:
+// el id "p:<tipo>" es el que lee handleDragEnd en EditorCanvas.
+function PaletteItem ({ type, children, onClick}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `p:${type}` });
+
+  return(
+    <Button
+    ref={setNodeRef}
+    {...listeners}
+    {...attributes}
+    onClick={onClick}
+    style={{
+      transform: CSS.Transform.toString(transform),
+      opacity: isDragging ? 0.5 : 1,
+    }}
+    >
+      {children}
+    </Button>
+  );
+}
 export default function SidebarEditor({
   isOpen,
   onClose,
@@ -97,24 +119,13 @@ export default function SidebarEditor({
                       </Text>
 
                       <VStack align="stretch" spacing={2}>
-                        <Button onClick={() => addBlockToSection("text")}>
-                          Texto
-                        </Button>
-                        <Button onClick={() => addBlockToSection("image")}>
-                          Imagen
-                        </Button>
-                        <Button onClick={() => addBlockToSection("button")}>
-                          Botón
-                        </Button>
-                        <Button onClick={() => addBlockToSection("divider")}>
-                          Separador
-                        </Button>
-                        <Button onClick={() => addBlockToSection("spacer")}>
-                          Espaciador
-                        </Button>
-                        <Button onClick={() => addBlockToSection("box")}>
-                          Párrafo
-                        </Button>
+                        <PaletteItem type="text" onClick={() => addBlockToSection("text")}>Texto</PaletteItem>
+                        <PaletteItem type="image" onClick={() => addBlockToSection("image")}>Imagen</PaletteItem>
+                        <PaletteItem type="button" onClick={() => addBlockToSection("button")}>Boton</PaletteItem>
+                        <PaletteItem type="divider" onClick={() => addBlockToSection("divider")}>Separador</PaletteItem>
+                        <PaletteItem type="spacer" onClick={() => addBlockToSection("spacer")}>Espaciador</PaletteItem>
+                        <PaletteItem type="box" onClick={() => addBlockToSection("box")}>Parrafo</PaletteItem>
+
                       </VStack>
                     </>
                   )}

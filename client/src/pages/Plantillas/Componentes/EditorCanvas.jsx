@@ -84,7 +84,8 @@ function SortableSection({ id, children, style, ...props }) {
 // compara centros y la sección (enorme) gana casi siempre: el bloque se movería
 // y además reordenaría la sección por error.  
 const collisionPorTipo = ({ droppableContainers, ...args }) => {
-  const esBloque = String(args.active.id).startsWith("b:");
+  const activo = String(args.active.id)
+  const esBloque = activo.startsWith("b:") || activo.startsWith("p:");
   const permitidos = droppableContainers.filter((c) => {
     const id = String(c.id);
     const esDeBloque = id.startsWith("b:") || id.startsWith("c:");
@@ -102,23 +103,45 @@ const buscarBloque = (sections, id) => {
   }
   return null;
 };
+
+// Columna y posición donde cae un arrastre; null si no es válido. El header no
+// acepta bloques de fuera: su paleta no existe hoy y meterle un texto rompe la barra.
+const destinoDe = (secciones, idDestino) => {
+  let col = null;
+  let i = 0;
+
+  if (idDestino.startsWith("c:")) {
+    col = secciones.flatMap((s) => s.columns).find((c) => String(c.id) === idDestino.slice(2));
+    if (col) i = col.blocks.length;
+  } else if (idDestino.startsWith("b:")) {
+    const found = buscarBloque(secciones, idDestino.slice(2));
+    if (found) {col = found.col; i = found.i;}
+  }
+
+  if (!col) return null;
+  if (secciones.some((s) => s.type === "header" && s.columns.includes(col))) return null;
+  return { col, i };
+};
+// Texto por defecto de un bloque nuevo: lo comparten la paleta y el botón
+const contenidoNuevo = (type) =>
+  type === "carousel"
+    ? ["https://via.placeholder.com/800x300"]
+    : type === "text"
+      ? "Nuevo texto"
+      : type === "heading"
+        ? "Nuevo título"
+        : type === "button"
+          ? "Botón"
+          : type === "box"
+            ? "Párrafo"
+            : "";
+          
 // Quita el bloque de su columna y lo inserta en la destino: en la posición
 // exacta del bloque sobre el que se suelta, o al final si se suelta en la columna
 const moverBloque = (secciones, idBloque, idDestino) => {
   const origen = buscarBloque(secciones, idBloque);
-  if (!origen) return secciones;
-
-  let destino;
-  if (idDestino.startsWith("c:")) {
-    const col = secciones.flatMap((s) => s.columns).find((c) => String(c.id) === idDestino.slice(2));
-    if (!col) return secciones;
-    destino = { col, i: col.blocks.length };
-  } else if (idDestino.startsWith("b:")) {
-    destino = buscarBloque(secciones, idDestino.slice(2));
-    if (!destino) return secciones;
-  } else {
-    return secciones;
-  }
+  const destino = destinoDe(secciones, idDestino);
+  if (!origen || !destino) return secciones;
 
   const bloque = origen.col.blocks[origen.i];
 
@@ -142,6 +165,24 @@ const moverBloque = (secciones, idBloque, idDestino) => {
     }),
   }));
 }
+
+// Bloque nuevo arrastrado desde la paleta: mismo destino que un arrastre normal
+const insertarBloque = (secciones, tipo, idDestino) => {
+  const destino = destinoDe (secciones, idDestino);
+  if(!destino) return secciones;
+
+  const bloque = {
+    id: Date.now(),
+    type: tipo,
+    styles: {},
+    content: contenidoNuevo(tipo),
+  };
+  
+  const col = {...destino.col, blocks: [...destino.col.blocks]};
+  col.blocks.splice(destino.i, 0, bloque);
+
+  return secciones.map((s) => ({ ...s,columns: s.columns.map((c) => (c === destino.col ? col: c))}));
+};
 
 export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl }) {
   const toast = useToast();
@@ -184,6 +225,12 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
 
   const handleDragEnd = ({ active, over }) => {
     if (!over || active.id === over.id) return;
+
+    if (String(active.id).startsWith("p:")) {
+      setSections((prev) => insertarBloque(prev, String(active.id).slice(2), String(over.id)));
+      return;
+    }
+
     if (String(active.id).startsWith("b:")) {
       const idBloque = String(active.id).slice(2);
       const idDestino = String(over.id);
@@ -371,6 +418,7 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
     setSections(updated);
     setSectionSelectorOpen(false);
   };
+
   const addBlockToSection = (type) => {
     const newSections = sections.map((sec) => {
       if (sec.id !== selectedSection.id) return sec;
@@ -390,21 +438,8 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
                 id: Date.now(),
                 type,
                 styles: {},
-                content:
-                  type === "carousel"
-                    ? ["https://via.placeholder.com/800x300"]
-                    : type === "text"
-                      ? "Nuevo texto"
-                      : type === "heading"
-                        ? "Nuevo título"
-                        : type === "button"
-                          ? "Botón"
-                          : type === "box"
-                            ? "Párrafo"
-                            : type === "menu-item"
-                              ? ""
-                              : ""
-              }
+                content: contenidoNuevo(type)
+             }
             ]
           };
         })
