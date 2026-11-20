@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./usuarios.css";
 import UserModal from "../../components/Modal/modal.jsx";
 import Search from "../../components/SearchBar/Search.jsx";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState([]);
@@ -235,7 +235,6 @@ const Usuarios = () => {
 
   return (
     <div className="usuarios-container">
-      <Toaster richColors position="top-center" />
       <h2 className="titulo-principal">
         {esAdmin ? "Gestión de Usuarios" : "Mi usuario"}
       </h2>

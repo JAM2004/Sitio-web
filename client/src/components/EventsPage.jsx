@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import "./EventsPage.css";
 import EventModal from "./Modal/EventModal.jsx";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import { useTemplates } from "../context/TemplatesContext";
 
 const EventsPage = () => {
@@ -171,7 +171,6 @@ const EventsPage = () => {
 
   return (
     <div className="events-container">
-      <Toaster richColors position="top-center" />
       <h2 className="page-title">Gestión de Eventos</h2>
 
       <div className="actions-bar">

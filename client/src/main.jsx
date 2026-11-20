@@ -4,8 +4,10 @@ import { createRoot } from "react-dom/client";
 import { ChakraProvider } from "@chakra-ui/react";
 import { AuthProvider } from "./context/AuthContext";
 import { TemplatesProvider } from "./context/TemplatesContext";
+import { Toaster } from "sonner";
 import App from "./App.jsx";
 import "./index.css";
+import "./sesion.js";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -18,5 +20,6 @@ createRoot(document.getElementById("root")).render(
         </AuthProvider>
       </ChakraProvider>
     </BrowserRouter>
+    <Toaster richColors position="top-center" />
   </StrictMode>
 );
