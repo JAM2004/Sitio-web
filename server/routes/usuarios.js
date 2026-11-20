@@ -115,9 +115,7 @@ router.patch('/usuarios/:id/status', authenticateAdmin, async (req,res) => {
 
   try
   {
-     if (status === 1) { } 
-
-     else if (status === 0) {
+      if (status === 0) {
       const [Usuarios] = await connection.query('SELECT COUNT(*) as count FROM usuarios WHERE id_rol = 1 AND estado = 1 AND ID_User != ?', [id]);
       if (Usuarios[0].count === 0) {
         return res.status(403).json({ error: 'No puedes desactivar al último administrador' });

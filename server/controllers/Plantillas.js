@@ -116,7 +116,7 @@ export const VaciarUnaPlantilla = async (req, res) => {
       [JSON.stringify(getDefaultStructure()), id],
     );
 
-    const [deleteImagesResult] = await connection.execute(
+    await connection.execute(
       'DELETE FROM evento_imagenes WHERE plantillas_id_plantilla = ? AND LOWER(tipo) = "portada"',
       [id]
     );

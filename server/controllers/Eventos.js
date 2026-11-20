@@ -32,7 +32,7 @@ export const crearEvento = async (req, res) => {
     return res.status(400).json({ error: 'El título es obligatorio' });}
   if (!fecha_inicio) {
     return res.status(400).json({ error: 'La fecha de inicio es obligatoria' }); }
-  if (Numbre.isNaN(new Date(fecha_inicio).getTime())) {
+  if (Number.isNaN(new Date(fecha_inicio).getTime())) {
     return res.status(400).json({ error: 'La fecha de inicio no es válida' }); }
   if (fecha_fin && new Date(fecha_inicio) > new Date(fecha_fin)) {
     return res.status(400).json({ error: 'La fecha de inicio no puede ser posterior a la fecha de fin' }); }
@@ -78,7 +78,7 @@ export const crearEvento = async (req, res) => {
 
     res.json({ message: 'Evento creado', paginaId, slug, id_evento: eventoId, id_plantilla: nuevaPlantillaId });
   } catch (err) {
-    try { await conn.rollback(); } catch (e) { /* ignore */ }
+    try { await conn.rollback(); } catch { /* ignore */ }
     console.error('Error creando evento:', err);
     if (err.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Ya existe un evento con el mismo título' });
@@ -132,7 +132,7 @@ export const crearEvento = async (req, res) => {
     const action = isActive ? 'desactivado' : 'activado';
     res.json({ message: `Evento ${action} correctamente` });
   } catch (err) {
-    try { await conn.rollback(); } catch (e) { /* ignore */ }
+    try { await conn.rollback(); } catch { /* ignore */ }
     console.error('Error al cambiar estado del evento:', err);
     res.status(500).json({ error: err.message });
   } finally {
@@ -192,7 +192,7 @@ export const editarEvento = async (req, res) => {
     await conn.commit();
     res.json({ message: 'Evento actualizado correctamente', cambios: result.affectedRows });
   } catch (err) {
-    try { await conn.rollback(); } catch (e) { /* ignore */ }
+    try { await conn.rollback(); } catch { /* ignore */ }
     console.error('Error editando evento:', err);
     if (err.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Ya existe un evento con el mismo título' });
