@@ -31,13 +31,13 @@ server/                  # API REST (Express)
   controllers/  routes/  middleware/
 ```
 
-Cada parte es un repositorio git propio (`.git/` en `client/` y en `server/`).
+Un solo repositorio git, con la raíz en la carpeta del proyecto: `client/` y `server/` viven dentro de él.
 
 ## Requisitos
 
 - Node.js + npm
 - MySQL 8
-- Importar el esquema: `server/login.sql` (dump canonicoo)
+- Importar el esquema: `server/login.sql` (dump canónico)
 
 Base de datos: usuarios y roles (`usuarios`, `roles`), eventos (`eventos`),
 páginas por slug (`paginas`), plantillas con `estructura_base` JSON
@@ -74,16 +74,26 @@ Client:
 ```powershell
 cd client
 npm install
-npm run dev     # Vite
+npm run dev     # Vite → http://localhost:5173
 ```
+
+El cliente pide siempre rutas relativas (`/api/...`, `/uploads/...`):
+`vite.config.js` hace de proxy hacia el 3001 en desarrollo; en producción ese
+papel lo hace nginx.
 
 ## API (resumen)
 
-- Usuarios: `POST /usuarios/login`, `GET /usuarios`, `POST /usuarios/registerUsers`,
+- Sesión: `POST /login`, `PATCH /usuarios/cambiar-pass`, `PATCH /usuarios/:id/reset-pass`
+- Usuarios (solo admin): `GET /usuarios`, `POST /registerUsers`,
   `PATCH /usuarios/:id/status`
-- Eventos: `POST /eventos/crear`, `GET /eventos/ver`, `PATCH /eventos/editar/:id`,
-  `DELETE /eventos/eliminar/:id`
-- Plantillas: `GET /plantillas`, `PATCH /plantillas/:id/estructura`, `DELETE /plantillas/:id`
+- Eventos: `GET /eventos/ver`, `POST /eventos/crear`, `PATCH /eventos/editar/:id`,
+  `PATCH /eventos/toggle/:id` — **no hay endpoint de DELETE**: ocultar es `toggle`
+- Plantillas: `GET /plantillas`, `GET /plantillas/vista/:id`,
+  `PATCH /plantillas/:id/estructura`, `DELETE /plantillas/:id` (vacía la
+  plantilla, solo admin)
+- Imágenes: `POST /componentes/:id/imagenes`, `GET /componentes/:id/imagenes`
+  (público), `PATCH /componentes/imagenes/:id`, `DELETE /componentes/imagenes/:id`
+- Página pública: `GET /pagina/:slug` (sin token)
 
 Autenticación por **JWT** (`Authorization: Bearer <token>`) y autorización por roles.
 
