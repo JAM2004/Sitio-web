@@ -2,15 +2,21 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import dotenv from 'dotenv'
 
 // Obtener __dirname en módulos ES6
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Crear carpeta uploads si no existe
-const uploadsDir = path.join(__dirname, '../public/uploads');
+dotenv.config();
+
+// Carpeta de subidas. En producción se mueve fuera del repo con UPLOADS_DIR; 
+// en local (sin la variable) queda en public/uploads como hasta ahora.
+export const uploadsDir = process.env.UPLOADS_DIR
+? path.resolve(process.env.UPLOADS_DIR)
+: path.join(__dirname,'../public/uploads');
 if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  fs.mkdirSync(uploadsDir, { recursive: true})
 }
 
 // Configurar almacenamiento

@@ -8,19 +8,17 @@ import eventosRouter from '../routes/Eventos.js';
 import plantillasRouter from '../routes/Plantillas.js';
 import CompRouter from '../routes/Componentes.js';
 import paginasRouter from '../routes/Paginas.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { uploadsDir } from './multerConfig.js';
 
 dotenv.config();
 const app = express();
 app.use(express.urlencoded({extended: true}));
 app.use(express.json());
-const PORT = process.env.PORTWEB || 3000;
+const PORT = process.env.PORTWEB || 3001;
 app.use(cors());
 
 
-app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
+app.use('/uploads', express.static(uploadsDir));
 app.use('/', router);
 app.use('/login', router);
 app.use('/usuarios', router)

@@ -37,7 +37,7 @@ Cada parte es un repositorio git propio (`.git/` en `client/` y en `server/`).
 
 - Node.js + npm
 - MySQL 8
-- Importar el esquema: `login.sql` (dump de referencia)
+- Importar el esquema: `server/login.sql` (dump canonicoo)
 
 Base de datos: usuarios y roles (`usuarios`, `roles`), eventos (`eventos`),
 páginas por slug (`paginas`), plantillas con `estructura_base` JSON
@@ -60,10 +60,10 @@ DB_USER=root
 DB_PASS=tu_pass
 DB_NAME=login
 JWT_SECRET=tu_secreto_largo
-PORTWEB=3000
+PORTWEB=3001
 ```
 
-Importa la base con `login.sql` y arranca:
+Importa la base con `server/login.sql` y arranca:
 
 ```powershell
 npm run dev     # nodemon → http://localhost:3001

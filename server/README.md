@@ -21,6 +21,7 @@ Dependencias principales (ya en `package.json`)
 Instalación
 1. Clona o coloca el proyecto en tu equipo.
 2. Desde la carpeta `server` instala dependencias:
+3. Crea la base de datos y las tablas importando `login.sql` (dump canonico de esta carpeta).
 
 ------------------powershell-------------------
 cd "C:\Users\PC-CIT05\Desktop\Sitio web\server"
@@ -37,7 +38,7 @@ A continuación las variables que el servidor espera (usa `src/server.js` y `src
 - `DB_PASS` - contraseña del usuario de BD
 - `DB_NAME` - nombre de la base de datos
 - `JWT_SECRET` - secreto para firmar JWT
-- `PORTWEB` - puerto donde correr el servidor (opcional, por defecto `3000`)
+- `PORTWEB` - puerto donde correr el servidor (opcional, por defecto `3001`)
 
 Ejemplo `.env`:
 
@@ -47,7 +48,7 @@ DB_USER=root
 DB_PASS=mi_pass
 DB_NAME=login
 JWT_SECRET=mi_secreto_largo
-PORTWEB=3000
+PORTWEB=3001
 ---------------------
 
 Scripts útiles
@@ -55,7 +56,7 @@ Scripts útiles
 - `npm start` - arranca en modo producción: `node src/server.js`
 
 Endpoints principales
-(En todos los ejemplos `http://localhost:3001` asume `PORTWEB=3000`)
+(En todos los ejemplos `http://localhost:3001` asume `PORTWEB=3001`)
 
 1) Usuarios
 - `POST /usuarios/login` — login
