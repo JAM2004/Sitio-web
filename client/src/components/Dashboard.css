@@ -83,3 +83,11 @@ table {
   margin-left: 0 !important;
   padding: 0 !important;
 }
+
+.panel-footer {
+  padding: 14px 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.85rem;
+  border-top: 1px solid #e5e7eb;
+}

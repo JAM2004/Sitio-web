@@ -28,6 +28,12 @@
   border-bottom: 1px solid #374151;
 }
 
+.sidebar-header img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
 
 .menu {
   list-style: none;

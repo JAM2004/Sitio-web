@@ -63,10 +63,13 @@ body {
   justify-content: center;
   padding-bottom: 4px;
   width: 100%;
+  background: #0b1220;
+  border-radius: 14px;
+  padding: 14px 24px;
 }
 
 .logo {
-  width: 84px;
+  width: 360px;
   height: auto;
   object-fit: contain;
   filter: none;

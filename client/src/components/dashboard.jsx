@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import Sidebar from "./sidebar";
 import Header from "./header";
 import "./Dashboard.css";
+import Footer from "./footer";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -33,6 +34,8 @@ const Dashboard = () => {
         <div className={`content ${isEditor ? "editor-full" : ""}`}>
           <Outlet />
         </div>
+
+        {!isEditor && <Footer />}
 
       </div>
     </div>

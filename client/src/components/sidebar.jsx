@@ -10,7 +10,7 @@ const Sidebar = ({ rol }) => {
     <aside className="sidebar">
       <div className="sidebar-top">
         <div className="sidebar-header">
-          <img src="/logo.png" alt="Logo" width="1000" />
+          <img src="/logo.png" alt="CIE Conecta" />
         </div>
 
         <ul className="menu">

@@ -2,8 +2,8 @@ import React from "react";
 
 const Footer = () => {
   return (
-    <footer className="footer">
-      © 2025 - Todos los derechos reservados.
+    <footer className="panel-footer">
+      © {new Date().getFullYear()} CIE Conecta - Todos los derechos reservados.
     </footer>
   );
 };

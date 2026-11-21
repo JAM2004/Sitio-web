@@ -2,9 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./login.css";
 import { useAuth } from "../../context/AuthContext";
-// import logo1 from "../assets/p6.png";
-// import logo2 from '../assets/p7.png'
-// import logo3 from '../assets/p8.png'
 
 export default function Login_component() {
   const { login } = useAuth();
@@ -59,8 +56,8 @@ export default function Login_component() {
   return (
     <div className="login-wrapper">
       <div className="login-card">
-        <div className="logos-row" aria-hidden>
-          {/* AQUI VAN LOS LOGOS */}
+        <div className="logos-row">
+          <img src="/logo.png" alt="CIE Conecta" className="logo"/>
         </div>
 
         <h2 className="login-title">Iniciar sesión</h2>
