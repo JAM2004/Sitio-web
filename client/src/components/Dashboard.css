@@ -33,6 +33,28 @@
   margin-bottom: 20px;
 }
 
+.content h2.page-title,
+.content h2.titulo-principal,
+.templates-header h1 {
+  margin: 0 0 14px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #0b1220;
+}
+
+.content h2.page-title::after,
+.content h2.titulo-principal::after,
+.templates-header h1::after{
+  content: "";
+  display: block;
+  width: 56px;
+  height: 4px;
+  margin: 10px auto 0;
+  border-radius: 2px;
+  background: #2563eb;
+}
+
 /* Contenedor para botones y tablas */
 .module-control {
   padding: 2rem;
@@ -45,7 +67,7 @@ table {
   width: 100%;
   border-collapse: collapse;
   table-layout: auto; 
-} */
+} 
 
 .templates-container {
   padding: 2rem;

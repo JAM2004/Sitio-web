@@ -257,7 +257,7 @@ const EventsPage = () => {
 
             {filteredEvents.length === 0 && (
               <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "20px" }}>
+                <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
                   No se encontraron eventos
                 </td>
               </tr>
