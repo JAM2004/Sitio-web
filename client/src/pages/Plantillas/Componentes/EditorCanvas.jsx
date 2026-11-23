@@ -194,6 +194,7 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
 
   const [isSectionSelectorOpen, setSectionSelectorOpen] = useState(false);
   const [targetSectionId, setTargetSectionId] = useState(null);
+  const [nombreSeccion, setNombreSeccion] = useState("");
 
   const [sections, setSections] = useState(() => {
     const dataKey = getEditorDataKey(plantillaId);
@@ -245,7 +246,7 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
     const normalized = normalizeInitialSections(initialData);
     setSections(normalized && isValidSections(normalized) ? normalized : getDefaultStructure());
   }, [plantillaId, initialData]);
- // Borra los borradores que dejaron versiones anteriores (ya no se escriben)
+  // Borra los borradores que dejaron versiones anteriores (ya no se escriben)
   useEffect(() => {
     localStorage.removeItem(getEditorDataKey(plantillaId));
     localStorage.removeItem("editorData");
@@ -317,8 +318,27 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
     setSidebarOpen(false);
     setSelectedSection(null);
   };
+  const slugSeccion = (t) =>
+    String(t)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  const anclaUnica = (lista, nombre) => {
+    const base = slugSeccion(nombre) || "seccion";
+    let ancla = base;
+    for (let n = 2; lista.some((s) => s.anchor === ancla); n++) {
+      ancla = `{base}-${n}`;
+    }
+    return ancla;
+  };
+
 
   const addTemplateSection = (type) => {
+
     let newSection;
 
     if (type === "hero") {
@@ -378,14 +398,84 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
         ]
       };
     }
+    const nombre = nombreSeccion.trim();
+    newSection.name = nombre;
+    if (nombre) {
+      newSection.anchor = anclaUnica(sections, nombre);
+    }
 
     const idx = sections.findIndex((s) => s.id === targetSectionId);
 
     const updated = [...sections];
     updated.splice(idx, 0, newSection);
 
+    if (nombre) {
+      const itemMenu = {
+        id: `menu-${newSection.id}`,
+        type: "menu-item",
+        styles: {},
+        content: nombre,
+        href: `#${newSection.anchor}`,
+      };
+      const hi = updated.findIndex((s) => s.type === "header");
+      if (hi >= 0) {
+        updated[hi] = {
+          ...updated[hi],
+          columns: updated[hi].columns.map((c) =>
+            c.id === "menu-col"
+              ? { ...c, blocks: [...c.blocks, itemMenu] }
+              : c
+          ),
+        };
+      }
+    }
+
     setSections(updated);
     setSectionSelectorOpen(false);
+    setNombreSeccion("");
+  };
+
+  const renameSection = (sectionId, nombre) => {
+    const prev = sections;
+    const vieja = prev.find((s) => s.id === sectionId);
+    if (!vieja) return;
+
+    const limpio = String(nombre).trim();
+    const nombreViejo = vieja.name || "";
+    const anclaVieja = vieja.anchor || `sec-${sectionId}`;
+    const anclaNueva = limpio
+      ? anclaUnica(prev.filter((s) => s.id !== sectionId), limpio)
+      : `sec-${sectionId}`;
+
+    const nuevas = prev.map((s) => {
+      if (s.id === sectionId) return { ...s, name: limpio, anchor: anclaNueva };
+      if (s.type !== "header") return s;
+      return {
+        ...s,
+        columns: s.columns.map((c) =>
+          c.id !== "menu-col"
+            ? c
+            : {
+              ...c,
+              blocks: c.blocks.map((b) =>
+                b.type === "menu-item" && b.href === `#${anclaVieja}`
+                  ? {
+                    ...b,
+                    href: `#${anclaNueva}`,
+                    content:
+                      limpio && b.content === nombreViejo ? limpio : b.content,
+                  }
+                  : b
+              ),
+            }
+        ),
+      };
+    });
+
+    setSections(nuevas);
+    if (selectedSection?.id === sectionId) {
+      setSelectedSection(nuevas.find((s) => s.id === sectionId));
+    }
   };
 
   const addBlockToSection = (type) => {
@@ -395,10 +485,6 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
       return {
         ...sec,
         columns: sec.columns.map((col) => {
-          if (sec.type === "header" && type === "menu-item") {
-            if (col.id !== "menu-col") return col;
-          }
-
           return {
             ...col,
             blocks: [
@@ -443,184 +529,239 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
     setSections(newSections);
   };
 
-const updateSectionColor = (color) => {
-  const newSections = sections.map((sec) =>
-    sec.id === selectedSection.id
-      ? { ...sec, backgroundColor: color }
-      : sec
-  );
-  setSections(newSections);
-};
-const updateHoverColor = (color) => {
-  const newSections = sections.map((sec) =>
-    sec.id === selectedSection.id
-      ? { ...sec, hoverColor: color }
-      : sec
-  );
-  setSections(newSections);
-};
-
-const updateTextColor = (color) => {
-  const newSections = sections.map((sec) =>
-    sec.id === selectedSection.id
-      ? { ...sec, textColor: color }
-      : sec
-  );
-  setSections(newSections);
-};
-
-const addNewSectionAbove = (targetId) => {
-  if (targetId === "header") return;
-
-  const newSection = {
-    id: Date.now(),
-    type: "section",
-    backgroundColor: "#ffffff",
-    columns: [{ id: "col-" + Date.now(), blocks: [] }]
+  const updateSectionColor = (color) => {
+    const newSections = sections.map((sec) =>
+      sec.id === selectedSection.id
+        ? { ...sec, backgroundColor: color }
+        : sec
+    );
+    setSections(newSections);
+  };
+  const updateHoverColor = (color) => {
+    const newSections = sections.map((sec) =>
+      sec.id === selectedSection.id
+        ? { ...sec, hoverColor: color }
+        : sec
+    );
+    setSections(newSections);
   };
 
-  const idx = sections.findIndex((s) => s.id === targetId);
-
-  const updated = [...sections];
-  updated.splice(idx, 0, newSection);
-
-  setSections(updated);
-};
-
-const handleBack = () => {
-  if (window.history.length > 1) {
-    window.history.back();
-  } else {
-    window.location.href = "/home";
-  }
-};
-
-const confirmDeleteSection = () => {
-  const filtered = sections.filter((sec) => sec.id !== sectionToDelete);
-  setSections(filtered);
-
-  toast({
-    title: "Sección eliminada",
-    description: "La sección se eliminó correctamente",
-    status: "success",
-    duration: 3000,
-    isClosable: true,
-  });
-
-  setSectionToDelete(null);
-};
-
-const uploadImage = async (file, tipo = "galeria") => {
-  if (!file || !plantillaId) return null;
-
-  const formData = new FormData();
-  formData.append("imagen", file);
-  formData.append("tipo", tipo);
-
-  try {
-    const res = await fetch(
-      `/api/componentes/${plantillaId}/imagenes`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: formData,
-      }
+  const updateTextColor = (color) => {
+    const newSections = sections.map((sec) =>
+      sec.id === selectedSection.id
+        ? { ...sec, textColor: color }
+        : sec
     );
+    setSections(newSections);
+  };
 
-    if (!res.ok) {
-      throw new Error("Error subiendo imagen");
+  const addNewSectionAbove = (targetId) => {
+    if (targetId === "header") return;
+
+    const newSection = {
+      id: Date.now(),
+      type: "section",
+      backgroundColor: "#ffffff",
+      columns: [{ id: "col-" + Date.now(), blocks: [] }]
+    };
+
+    const idx = sections.findIndex((s) => s.id === targetId);
+
+    const updated = [...sections];
+    updated.splice(idx, 0, newSection);
+
+    setSections(updated);
+  };
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "/home";
     }
+  };
 
-    const data = await res.json();
+  const confirmDeleteSection = () => {
+    const borrada = sections.find((sec) => sec.id === sectionToDelete);
+    const ancla = borrada?.anchor || `sec-${sectionToDelete}`;
 
-    return data.url;
-
-  } catch (error) {
-    console.error(error);
+    const filtradas = sections
+      .filter((sec) => sec.id !== sectionToDelete)
+      .map((sec) => {
+        if (sec.type !== "header") return sec;
+        return {
+          ...sec,
+          columns: sec.columns.map((c) =>
+            c.id !== "menu-col"
+              ? c
+              : {
+                ...c,
+                blocks: c.blocks.filter(
+                  (b) => !(b.type === "menu-item" && b.href === `#${ancla}`)
+                ),
+              }
+          ),
+        }; 
+      })
+    setSections(filtradas);
 
     toast({
-      title: "Error",
-      description: "No se pudo subir la imagen",
-      status: "error",
+      title: "Sección eliminada",
+      description: "La sección se eliminó correctamente",
+      status: "success",
       duration: 3000,
       isClosable: true,
     });
 
-    return null;
-  }
-};
+    setSectionToDelete(null);
+  };
 
-const handleImageUpload = async (blockId, file) => {
-  if (!file) return;
+  const uploadImage = async (file, tipo = "galeria") => {
+    if (!file || !plantillaId) return null;
 
-  const imageUrl = await uploadImage(file, "galeria");
+    const formData = new FormData();
+    formData.append("imagen", file);
+    formData.append("tipo", tipo);
 
-  if (!imageUrl) return;
+    try {
+      const res = await fetch(
+        `/api/componentes/${plantillaId}/imagenes`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: formData,
+        }
+      );
 
-  const newSections = sections.map((section) => ({
-    ...section,
-    columns: section.columns.map((col) => ({
-      ...col,
-      blocks: col.blocks.map((block) =>
-        block.id === blockId
-          ? {
-            ...block,
-            src: imageUrl,
-          }
-          : block
-      ),
-    })),
-  }));
+      if (!res.ok) {
+        throw new Error("Error subiendo imagen");
+      }
 
-  setSections(newSections);
+      const data = await res.json();
 
-  toast({
-    title: "Imagen subida",
-    status: "success",
-    duration: 2000,
-    isClosable: true,
-  });
-};
+      return data.url;
 
-const handleLogoUpload = async (file, tipo = "logo", orden = 0) => {
-  if (!file) return;
-  if (!plantillaId) {
+    } catch (error) {
+      console.error(error);
+
+      toast({
+        title: "Error",
+        description: "No se pudo subir la imagen",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      return null;
+    }
+  };
+
+  const handleImageUpload = async (blockId, file) => {
+    if (!file) return;
+
+    const imageUrl = await uploadImage(file, "galeria");
+
+    if (!imageUrl) return;
+
+    const newSections = sections.map((section) => ({
+      ...section,
+      columns: section.columns.map((col) => ({
+        ...col,
+        blocks: col.blocks.map((block) =>
+          block.id === blockId
+            ? {
+              ...block,
+              src: imageUrl,
+            }
+            : block
+        ),
+      })),
+    }));
+
+    setSections(newSections);
+
     toast({
-      title: "Error",
-      description: "No se encontró el ID de la plantilla para subir el logo.",
-      status: "error",
-      duration: 3000,
+      title: "Imagen subida",
+      status: "success",
+      duration: 2000,
       isClosable: true,
     });
-    return;
-  }
+  };
 
-  const formData = new FormData();
-  formData.append("imagen", file);
-  formData.append("tipo", tipo);
-  formData.append("orden", orden);
-
-  try {
-    const res = await fetch(
-      `/api/componentes/${plantillaId}/imagenes`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: formData,
-      }
-    );
-
-    if (!res.ok) {
-      throw new Error("Error subiendo imagen");
+  const handleLogoUpload = async (file, tipo = "logo", orden = 0) => {
+    if (!file) return;
+    if (!plantillaId) {
+      toast({
+        title: "Error",
+        description: "No se encontró el ID de la plantilla para subir el logo.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
     }
 
-    const data = await res.json();
-    const imageUrl = data.url || "";
+    const formData = new FormData();
+    formData.append("imagen", file);
+    formData.append("tipo", tipo);
+    formData.append("orden", orden);
 
+    try {
+      const res = await fetch(
+        `/api/componentes/${plantillaId}/imagenes`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Error subiendo imagen");
+      }
+
+      const data = await res.json();
+      const imageUrl = data.url || "";
+
+      const newSections = sections.map((section) => {
+        if (section.type !== "header") return section;
+
+        return {
+          ...section,
+          columns: section.columns.map((col) => {
+            if (col.id !== "logo-col") return col;
+
+            return {
+              ...col,
+              blocks: col.blocks.map((block) =>
+                block.type === "image"
+                  ? { ...block, src: imageUrl }
+                  : block
+              )
+            };
+          })
+        };
+      });
+
+      setSections(newSections);
+
+    } catch (error) {
+      console.error("Error subiendo imagen:", error);
+      toast({
+        title: "Error",
+        description: "Error al subir la imagen",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const removeLogo = () => {
     const newSections = sections.map((section) => {
       if (section.type !== "header") return section;
 
@@ -633,7 +774,7 @@ const handleLogoUpload = async (file, tipo = "logo", orden = 0) => {
             ...col,
             blocks: col.blocks.map((block) =>
               block.type === "image"
-                ? { ...block, src: imageUrl }
+                ? { ...block, src: "" }
                 : block
             )
           };
@@ -642,452 +783,424 @@ const handleLogoUpload = async (file, tipo = "logo", orden = 0) => {
     });
 
     setSections(newSections);
+  };
 
-  } catch (error) {
-    console.error("Error subiendo imagen:", error);
-    toast({
-      title: "Error",
-      description: "Error al subir la imagen",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-};
+  const handleSave = async () => {
+    if (!plantillaId) {
+      toast({
+        title: "Error",
+        description: "No se encontró el ID de la plantilla",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
-const removeLogo = () => {
-  const newSections = sections.map((section) => {
-    if (section.type !== "header") return section;
+    setIsLoading(true);
 
-    return {
-      ...section,
-      columns: section.columns.map((col) => {
-        if (col.id !== "logo-col") return col;
+    try {
+      console.log("Guardando plantilla con estructura:", sections);
+      const response = await fetch(
+        `/api/plantillas/${plantillaId}/estructura`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ estructura: sections }),
+        }
 
-        return {
-          ...col,
-          blocks: col.blocks.map((block) =>
-            block.type === "image"
-              ? { ...block, src: "" }
-              : block
-          )
-        };
-      })
-    };
-  });
+      );
 
-  setSections(newSections);
-};
-
-const handleSave = async () => {
-  if (!plantillaId) {
-    toast({
-      title: "Error",
-      description: "No se encontró el ID de la plantilla",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
-
-  setIsLoading(true);
-
-  try {
-    console.log("Guardando plantilla con estructura:", sections);
-    const response = await fetch(
-      `/api/plantillas/${plantillaId}/estructura`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ estructura: sections }),
+      if (!response.ok) {
+        throw new Error("Error al guardar la plantilla");
       }
 
-    );
+      toast({
+        title: "Éxito",
+        description: "Plantilla guardada correctamente",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
 
-    if (!response.ok) {
-      throw new Error("Error al guardar la plantilla");
-    }
-
-    toast({
-      title: "Éxito",
-      description: "Plantilla guardada correctamente",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-
-    if (onSave) {
-      onSave(sections);
-    }
-  } catch (error) {
-    console.error("Error guardando:", error);
-    toast({
-      title: "Error",
-      description: error.message || "Error al guardar la plantilla",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-const updateBlock = (blockId, updates) => {
-  const newSections = sections.map((section) => ({
-    ...section,
-    columns: section.columns.map((col) => ({
-      ...col,
-      blocks: col.blocks.map((block) =>
-        block.id === blockId
-          ? {
-            ...block,
-            ...updates,
-          }
-          : block
-      ),
-    })),
-  }));
-
-  setSections(newSections);
-
-  const updatedBlock = newSections
-    .flatMap((s) => s.columns)
-    .flatMap((c) => c.blocks)
-    .find((b) => b.id === blockId);
-
-  setSelectedBlock(updatedBlock);
-};
-
-useEffect(() => {
-  const handleClickOutside = (e) => {
-    const clickedBlock = e.target.closest(".editable-block");
-    const clickedToolbar = e.target.closest(".floating-toolbar");
-
-    if (!clickedBlock && !clickedToolbar) {
-      setSelectedBlock(null);
+      if (onSave) {
+        onSave(sections);
+      }
+    } catch (error) {
+      console.error("Error guardando:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Error al guardar la plantilla",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  document.addEventListener("mousedown", handleClickOutside);
-
-  return () => {
-    document.removeEventListener("mousedown", handleClickOutside);
-  };
-}, []);
-return (
-  <Box className={`page-canvas ${isSidebarOpen ? "canvas-shrink" : ""}`}>
-    <Box
-      className="top-editor-bar"
-      position="sticky"
-      top="0"
-      width="100%"
-      zIndex="2000"
-      bg="#333333"
-      display="flex"
-      justifyContent="space-between"
-      alignItems="center"
-      px={2}
-      py={2}
-    >
-      <HStack>
-        <Button
-          variant="outline"
-          borderColor="#8a8a8a"
-          color="#ffffff"
-          px={6}
-          minW="110px"
-          flexShrink={0}
-          onClick={handleBack}
-          _hover={{
-            bg: "#454645",
-            color: "#ffffff",
-          }}
-        >
-          Volver
-        </Button>
-      </HStack>
-
-      <HStack key={plantillaId} spacing={3}>
-
-        <Button
-          variant="outline"
-          borderColor="#8a8a8a"
-          color="#ffffff"
-          px={6}
-          minW="120px"
-          flexShrink={0}
-          _hover={{
-            bg: "#454645",
-            color: "#ffffff",
-          }}
-          onClick={() => {
-            if (slugUrl) {
-              window.open(`/evento/${slugUrl}`, "_blank", "noopener,noreferrer");
-            } else {
-              alert("Esta plantilla no tiene pagina publica todavia");
+  const updateBlock = (blockId, updates) => {
+    const newSections = sections.map((section) => ({
+      ...section,
+      columns: section.columns.map((col) => ({
+        ...col,
+        blocks: col.blocks.map((block) =>
+          block.id === blockId
+            ? {
+              ...block,
+              ...updates,
             }
-          }}
+            : block
+        ),
+      })),
+    }));
 
-        >
-          Vista previa
-        </Button>
-        <Button
-          bg="#ffffff"
-          color="#333333"
-          px={6}
-          minW="120px"
-          flexShrink={0}
-          _hover={{ bg: "#e0dcdc" }}
-          onClick={handleSave}
-          isLoading={isLoading}
-          loadingText="Guardando..."
-        >
-          Guardar
-        </Button>
-      </HStack>
-    </Box>
+    setSections(newSections);
 
-    <Divider borderColor="gray.300" opacity={0.5} />
+    const updatedBlock = newSections
+      .flatMap((s) => s.columns)
+      .flatMap((c) => c.blocks)
+      .find((b) => b.id === blockId);
 
-    <VStack spacing={0} align="stretch" w="100%">
-      <DndContext sensors={sensors} collisionDetection={collisionPorTipo} onDragEnd={handleDragEnd}>
-        <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-          {sections.map((section) => (
-            <SortableSection
-              id={section.id}
-              key={section.id}
-              className={`section-wrapper hover-parent ${section.type === "header" ? "header" : ""}`}
-              bg={section.backgroundColor}
-              color={section.textColor || "#000000"}
-              width="100%"
-              pt={section.fullWidth ? 0 : section.type === "header" ? 4 : 2}
-              pb={section.fullWidth ? 0 : 6}
-              px={section.fullWidth ? 0 : 6}
-              position="relative"
-              minH={
-                section.type === "header"
-                  ? "80px"
-                  : section.columns[0].blocks.length === 0
-                    ? "380px"
-                    : "auto"
+    setSelectedBlock(updatedBlock);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      const clickedBlock = e.target.closest(".editable-block");
+      const clickedToolbar = e.target.closest(".floating-toolbar");
+
+      if (!clickedBlock && !clickedToolbar) {
+        setSelectedBlock(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+  return (
+    <Box className={`page-canvas ${isSidebarOpen ? "canvas-shrink" : ""}`}>
+      <Box
+        className="top-editor-bar"
+        position="sticky"
+        top="0"
+        width="100%"
+        zIndex="2000"
+        bg="#333333"
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        px={2}
+        py={2}
+      >
+        <HStack>
+          <Button
+            variant="outline"
+            borderColor="#8a8a8a"
+            color="#ffffff"
+            px={6}
+            minW="110px"
+            flexShrink={0}
+            onClick={handleBack}
+            _hover={{
+              bg: "#454645",
+              color: "#ffffff",
+            }}
+          >
+            Volver
+          </Button>
+        </HStack>
+
+        <HStack key={plantillaId} spacing={3}>
+
+          <Button
+            variant="outline"
+            borderColor="#8a8a8a"
+            color="#ffffff"
+            px={6}
+            minW="120px"
+            flexShrink={0}
+            _hover={{
+              bg: "#454645",
+              color: "#ffffff",
+            }}
+            onClick={() => {
+              if (slugUrl) {
+                window.open(`/evento/${slugUrl}`, "_blank", "noopener,noreferrer");
+              } else {
+                alert("Esta plantilla no tiene pagina publica todavia");
               }
-              style={{
-                "--menu-hover-color": section.hoverColor || "#5c5c5c"
-              }} >
-              <Box className="hover-menu"
-                position="absolute"
-                top="10px"
-                right="10px"
-                bg="#3a3a3a"
-                borderRadius="md"
-                display="flex"
-                overflow="hidden"
-                zIndex="10"
-              >
-                <Button
-                  size="xs"
-                  bg="transparent"
-                  color="white"
-                  _hover={{ bg: "#4a4a4a" }}
-                  borderRadius="0"
-                  onClick={() => openSectionEditor(section.id)}
+            }}
+
+          >
+            Vista previa
+          </Button>
+          <Button
+            bg="#ffffff"
+            color="#333333"
+            px={6}
+            minW="120px"
+            flexShrink={0}
+            _hover={{ bg: "#e0dcdc" }}
+            onClick={handleSave}
+            isLoading={isLoading}
+            loadingText="Guardando..."
+          >
+            Guardar
+          </Button>
+        </HStack>
+      </Box>
+
+      <Divider borderColor="gray.300" opacity={0.5} />
+
+      <VStack spacing={0} align="stretch" w="100%">
+        <DndContext sensors={sensors} collisionDetection={collisionPorTipo} onDragEnd={handleDragEnd}>
+          <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+            {sections.map((section) => (
+              <SortableSection
+                id={section.id}
+                key={section.id}
+                className={`section-wrapper hover-parent ${section.type === "header" ? "header" : ""}`}
+                bg={section.backgroundColor}
+                color={section.textColor || "#000000"}
+                width="100%"
+                pt={section.fullWidth ? 0 : section.type === "header" ? 4 : 2}
+                pb={section.fullWidth ? 0 : 6}
+                px={section.fullWidth ? 0 : 6}
+                position="relative"
+                minH={
+                  section.type === "header"
+                    ? "80px"
+                    : section.columns[0].blocks.length === 0
+                      ? "380px"
+                      : "auto"
+                }
+                style={{
+                  "--menu-hover-color": section.hoverColor || "#5c5c5c"
+                }} >
+                <Box className="hover-menu"
+                  position="absolute"
+                  top="10px"
+                  right="10px"
+                  bg="#3a3a3a"
+                  borderRadius="md"
+                  display="flex"
+                  overflow="hidden"
+                  zIndex="10"
                 >
-                  <FiEdit />
-                </Button>
-                {section.id !== "header" && section.id !== "footer" && (
                   <Button
                     size="xs"
                     bg="transparent"
                     color="white"
                     _hover={{ bg: "#4a4a4a" }}
                     borderRadius="0"
-                    onClick={() => setSectionToDelete(section.id)}
+                    onClick={() => openSectionEditor(section.id)}
                   >
-                    <FiTrash2 />
+                    <FiEdit />
                   </Button>
+                  {section.id !== "header" && section.id !== "footer" && (
+                    <Button
+                      size="xs"
+                      bg="transparent"
+                      color="white"
+                      _hover={{ bg: "#4a4a4a" }}
+                      borderRadius="0"
+                      onClick={() => setSectionToDelete(section.id)}
+                    >
+                      <FiTrash2 />
+                    </Button>
+                  )}
+                </Box>
+
+                {section.id !== "header" && section.id !== "footer" && (
+                  <div className="add-section-hover">
+                    <Button
+                      size="sm"
+                      bg="#007bff"
+                      color="white"
+                      _hover={{
+                        bg: "#0063cc",
+                      }}
+                      onClick={() => {
+                        setTargetSectionId(section.id);
+                        setNombreSeccion("");
+                        setSectionSelectorOpen(true);
+                      }}
+                    >
+                      + Agregar sección
+                    </Button>
+                  </div>
                 )}
-              </Box>
 
-              {section.id !== "header" && section.id !== "footer" && (
-                <div className="add-section-hover">
-                  <Button
-                    size="sm"
-                    bg="#007bff"
-                    color="white"
-                    _hover={{
-                      bg: "#0063cc",
-                    }}
-                    onClick={() => {
-                      setTargetSectionId(section.id);
-                      setSectionSelectorOpen(true);
-                    }}
-                  >
-                    + Agregar sección
-                  </Button>
-                </div>
-              )}
-
-              {section.type === "header" ? (
-                <HStack
-                  w="100%"
-                  h="80px"
-                  align="center"
-                  justify="space-between"
-                  px={6}
-                >
-                  <Box minW="140px" maxW="160px">
-                    <DroppableColumn
-                      column={section.columns[0]}
-                      isHeader
-                      setSelectedBlock={setSelectedBlock}
-                      updateBlockContent={updateBlockContent}
-                      isEditingHeader={
-                        isSidebarOpen && selectedSection?.id === section.id
-                      }
-                    />
-                  </Box>
+                {section.type === "header" ? (
                   <HStack
-                    className="menu-desktop"
-                    spacing={6}
-                    h="100%"
-                    align="stretch"
-                    justify="center"
-                    flex="1"
+                    w="100%"
+                    h="80px"
+                    align="center"
+                    justify="space-between"
+                    px={6}
                   >
-                    <DroppableColumn
-                      column={section.columns[1]}
-                      isHeader
-                      setSelectedBlock={setSelectedBlock}
-                      updateBlockContent={updateBlockContent}
-                      isEditingHeader={
-                        isSidebarOpen && selectedSection?.id === section.id
-                      }
-                    />
-                  </HStack>
-
-                  <Box className="menu-mobile-btn">☰</Box>
-                </HStack>
-              ) : (
-                <HStack justify="space-between"
-                  spacing={section.fullWidth ? 0 : 6}
-                  w="100%">
-                  {section.columns.map((column) => (
-                    <DroppableColumn
-                      key={column.id}
-                      column={column}
-                      handleImageUpload={handleImageUpload}
-                      handleCarouselUpload={handleCarouselUpload}
-                      isHeader={section.type === "header"}
-                      updateBlock={updateBlock}
-                      setSelectedBlock={setSelectedBlock}
-                      selectedBlock={selectedBlock}
-                      updateBlockContent={updateBlockContent}
-                      isEditingHeader={
-                        isSidebarOpen && selectedSection?.id === section.id
-                      }
-                      deleteBlock={deleteBlock}
-                    />
-                  ))}
-                </HStack>
-              )}
-            </SortableSection>
-          ))}
-          <SidebarEditor
-            isOpen={isSidebarOpen}
-            selectedBlock={selectedBlock}
-            updateBlock={updateBlock}
-            onClose={closeSidebar}
-            selectedSection={selectedSection}
-            sections={sections}
-            setSections={setSections}
-            addBlockToSection={addBlockToSection}
-            updateMenuItem={updateMenuItem}
-            deleteMenuItem={deleteMenuItem}
-            handleCarouselUpload={handleCarouselUpload}
-            handleLogoUpload={handleLogoUpload}
-            removeLogo={removeLogo}
-            updateSectionColor={updateSectionColor}
-            updateTextColor={updateTextColor}
-            updateHoverColor={updateHoverColor}
-          />
-          <AlertDialog
-            isOpen={!!sectionToDelete}
-            leastDestructiveRef={cancelRef}
-            onClose={() => setSectionToDelete(null)}
-            isCentered
-          >
-            <AlertDialogOverlay>
-              <AlertDialogContent>
-                <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                  Eliminar sección
-                </AlertDialogHeader>
-
-                <AlertDialogBody>
-                  ¿Estás seguro de que quieres eliminar esta sección? Esta acción no se puede deshacer.
-                </AlertDialogBody>
-
-                <AlertDialogFooter>
-                  <Button ref={cancelRef} onClick={() => setSectionToDelete(null)}>
-                    Cancelar
-                  </Button>
-
-                  <Button colorScheme="red" onClick={confirmDeleteSection} ml={3}>
-                    Eliminar
-                  </Button>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialogOverlay>
-          </AlertDialog>
-          <Modal
-            isOpen={isSectionSelectorOpen}
-            onClose={() => setSectionSelectorOpen(false)}
-            size="6xl"
-          >
-            <ModalContent>
-              <ModalHeader>Agregar una sección</ModalHeader>
-              <ModalCloseButton />
-
-              <ModalBody>
-                <HStack align="start" spacing={6}>
-
-                  <VStack align="start" minW="200px">
-                    <Text fontWeight="bold">Secciones</Text>
-                    <Button variant="ghost">Todas las secciones</Button>
-                  </VStack>
-
-                  <Box flex="1">
-                    <HStack wrap="wrap" spacing={4}>
-                      <Box
-                        border="1px solid #ddd"
-                        p={4}
-                        cursor="pointer"
-                        onClick={() => addTemplateSection("hero")}
-                      >
-                        <Text>Sección en blanco</Text>
-                      </Box>
-                      <Box
-                        border="1px solid #ddd"
-                        p={4}
-                        cursor="pointer"
-                        onClick={() => addTemplateSection("carousel-full")}
-                      >
-                        <Text>Carousel</Text>
-                      </Box>
+                    <Box minW="140px" maxW="160px">
+                      <DroppableColumn
+                        column={section.columns[0]}
+                        isHeader
+                        setSelectedBlock={setSelectedBlock}
+                        updateBlockContent={updateBlockContent}
+                        isEditingHeader={
+                          isSidebarOpen && selectedSection?.id === section.id
+                        }
+                      />
+                    </Box>
+                    <HStack
+                      className="menu-desktop"
+                      spacing={6}
+                      h="100%"
+                      align="stretch"
+                      justify="center"
+                      flex="1"
+                    >
+                      <DroppableColumn
+                        column={section.columns[1]}
+                        isHeader
+                        setSelectedBlock={setSelectedBlock}
+                        updateBlockContent={updateBlockContent}
+                        isEditingHeader={
+                          isSidebarOpen && selectedSection?.id === section.id
+                        }
+                      />
                     </HStack>
-                  </Box>
-                </HStack>
-              </ModalBody>
-            </ModalContent>
-          </Modal>
 
-        </SortableContext>
-      </DndContext>
-    </VStack>
-  </Box>
-);
+                    <Box className="menu-mobile-btn">☰</Box>
+                  </HStack>
+                ) : (
+                  <HStack justify="space-between"
+                    spacing={section.fullWidth ? 0 : 6}
+                    w="100%">
+                    {section.columns.map((column) => (
+                      <DroppableColumn
+                        key={column.id}
+                        column={column}
+                        handleImageUpload={handleImageUpload}
+                        handleCarouselUpload={handleCarouselUpload}
+                        isHeader={section.type === "header"}
+                        updateBlock={updateBlock}
+                        setSelectedBlock={setSelectedBlock}
+                        selectedBlock={selectedBlock}
+                        updateBlockContent={updateBlockContent}
+                        isEditingHeader={
+                          isSidebarOpen && selectedSection?.id === section.id
+                        }
+                        deleteBlock={deleteBlock}
+                      />
+                    ))}
+                  </HStack>
+                )}
+              </SortableSection>
+            ))}
+            <SidebarEditor
+              isOpen={isSidebarOpen}
+              selectedBlock={selectedBlock}
+              updateBlock={updateBlock}
+              onClose={closeSidebar}
+              selectedSection={selectedSection}
+              sections={sections}
+              setSections={setSections}
+              addBlockToSection={addBlockToSection}
+              updateMenuItem={updateMenuItem}
+              deleteMenuItem={deleteMenuItem}
+              handleCarouselUpload={handleCarouselUpload}
+              handleLogoUpload={handleLogoUpload}
+              removeLogo={removeLogo}
+              updateSectionColor={updateSectionColor}
+              updateTextColor={updateTextColor}
+              updateHoverColor={updateHoverColor}
+              renameSection={renameSection}
+            />
+            <AlertDialog
+              isOpen={!!sectionToDelete}
+              leastDestructiveRef={cancelRef}
+              onClose={() => setSectionToDelete(null)}
+              isCentered
+            >
+              <AlertDialogOverlay>
+                <AlertDialogContent>
+                  <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                    Eliminar sección
+                  </AlertDialogHeader>
+
+                  <AlertDialogBody>
+                    ¿Estás seguro de que quieres eliminar esta sección? Esta acción no se puede deshacer.
+                  </AlertDialogBody>
+
+                  <AlertDialogFooter>
+                    <Button ref={cancelRef} onClick={() => setSectionToDelete(null)}>
+                      Cancelar
+                    </Button>
+
+                    <Button colorScheme="red" onClick={confirmDeleteSection} ml={3}>
+                      Eliminar
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialogOverlay>
+            </AlertDialog>
+            <Modal
+              isOpen={isSectionSelectorOpen}
+              onClose={() => setSectionSelectorOpen(false)}
+              size="6xl"
+            >
+              <ModalContent>
+                <ModalHeader>Agregar una sección</ModalHeader>
+                <ModalCloseButton />
+
+                <ModalBody>
+                  <Input
+                  mb={4}
+                  placeholder="Nombre de la seccion (opcional) - se agregara al menu del header"
+                  value={nombreSeccion}
+                  onChange={(e) => setNombreSeccion(e.target.value)} 
+                  />
+                  <HStack align="start" spacing={6}>
+                    <VStack align="start" minW="200px">
+                      <Text fontWeight="bold">Secciones</Text>
+                      <Button variant="ghost">Todas las secciones</Button>
+                    </VStack>
+
+                    <Box flex="1">
+                      <HStack wrap="wrap" spacing={4}>
+                        <Box
+                          border="1px solid #ddd"
+                          p={4}
+                          cursor="pointer"
+                          onClick={() => addTemplateSection("hero")}
+                        >
+                          <Text>Sección en blanco</Text>
+                        </Box>
+                        <Box
+                          border="1px solid #ddd"
+                          p={4}
+                          cursor="pointer"
+                          onClick={() => addTemplateSection("carousel-full")}
+                        >
+                          <Text>Carousel</Text>
+                        </Box>
+                      </HStack>
+                    </Box>
+                  </HStack>
+                </ModalBody>
+              </ModalContent>
+            </Modal>
+
+          </SortableContext>
+        </DndContext>
+      </VStack>
+    </Box>
+  );
 }

@@ -1,7 +1,16 @@
 import db from '../src/db.js';
 
+const slugify= (t) =>
+  String(t)
+.normalize("NFD")
+.replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+    
 export const verEventos = async (req, res) => {
-
   try {
     if (req.user.id_rol === 1) { 
       const [eventos] = await db.execute('SELECT * FROM eventos ORDER BY deleted_at DESC');
@@ -40,7 +49,16 @@ export const crearEvento = async (req, res) => {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
-    const slug = `evento-${Date.now()}`;
+    const Base = slugify(titulo) || `evento-${Date.now()}`;
+    let slug = Base;
+    for(let n = 2; n < 500; n++){
+      const [dup] = await conn.execute(
+        'SELECT slug_url FROM paginas WHERE slug_url = ?', [slug]
+      );
+      if (dup.length === 0) break;
+      slug =`${Base}-${n}`;
+    }
+
     const [paginaResult] = await conn.execute(
       'INSERT INTO paginas (slug_url, fecha_modificacion) value (?, NOW())',
       [slug]

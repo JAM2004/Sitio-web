@@ -31,19 +31,19 @@ import ColorPicker from "./ColorPicker";
 
 // Cada botón de la paleta es a la vez clicable (como hasta ahora) y arrastrable:
 // el id "p:<tipo>" es el que lee handleDragEnd en EditorCanvas.
-function PaletteItem ({ type, children, onClick}) {
+function PaletteItem({ type, children, onClick }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `p:${type}` });
 
-  return(
+  return (
     <Button
-    ref={setNodeRef}
-    {...listeners}
-    {...attributes}
-    onClick={onClick}
-    style={{
-      transform: CSS.Transform.toString(transform),
-      opacity: isDragging ? 0.5 : 1,
-    }}
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={onClick}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        opacity: isDragging ? 0.5 : 1,
+      }}
     >
       {children}
     </Button>
@@ -66,6 +66,7 @@ export default function SidebarEditor({
   selectedBlock,
   updateBlock,
   updateHoverColor,
+  renameSection,
 }) {
   const [activeTab, setActiveTab] = useState("contenido");
 
@@ -114,6 +115,19 @@ export default function SidebarEditor({
                 <>
                   {selectedSection.type === "section" && (
                     <>
+                      <Box mb={4}>
+                        <Text fontWeight="bold" mb={2}>
+                          Nombre de la seccion
+                        </Text>
+                        <Input
+                          size="sm"
+                          placeholder="Ej: Galeria"
+                          value={selectedSection.name || ""}
+                          onChange={(e) =>
+                            renameSection(selectedSection.id, e.target.value)
+                          }
+                        />
+                      </Box>
                       <Text fontWeight="bold" mb={2}>
                         Agregar bloque
                       </Text>
@@ -224,25 +238,41 @@ export default function SidebarEditor({
                       {sections
                         .find((s) => s.id === selectedSection.id)
                         ?.columns[1].blocks.map((item) => (
-                          <HStack key={item.id} mb={2}>
-                            <Input
-                              value={item.content}
-                              onChange={(e) =>
-                                updateMenuItem(item.id, e.target.value)
-                              }
-                            />
-                            <Button
+                          <Box key={item.id} mb={3}>
+                            <HStack mb={1}>
+                              <Input
+                                value={item.content}
+                                onChange={(e) =>
+                                  updateMenuItem(item.id, e.target.value)
+                                }
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => deleteMenuItem(item.id)}
+                              >
+                                X
+                              </Button>
+                            </HStack>
+                            <Select
                               size="sm"
-                              onClick={() => deleteMenuItem(item.id)}
+                              placeholder="Sin ancla"
+                              value={item.href || ""}
+                              onChange={(e) =>
+                                updateBlock(item.id, { href: e.target.value })
+                              }
                             >
-                              X
-                            </Button>
-                          </HStack>
+                              {sections.map((s, i) => (
+                                <option key={s.id} value={`#${s.anchor || `sec-${s.id}`}`}>
+                                  {s.id === "header"
+                                    ? "Inicio (arriba)"
+                                    : s.id === "footer"
+                                      ? "Pie de pagina"
+                                      : s.name || `Seccion ${i}`}
+                                </option>
+                              ))}
+                            </Select>
+                          </Box>
                         ))}
-
-                      <Button mt={2} onClick={() => addBlockToSection("menu-item")}>
-                        + Agregar item
-                      </Button>
                     </>
                   )}
                 </>

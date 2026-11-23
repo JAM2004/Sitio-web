@@ -44,13 +44,13 @@ const TemplateRenderer = ({ estructura }) => {
         );
       case "menu-item":
         return (
-          <Button key={key} variant="pointer" size="sm" colorScheme="pink" mr={2} mb={2}>
+          <Button key={key} as={block.href ? "a" : "button"} href={block.href || undefined} variant="pointer" size="sm" colorScheme="pink" mr={2} mb={2}>
             {content || "Menu"}
           </Button>
         );
       case "button":
         return (
-          <Button key={key} colorScheme="pink" size="md" mb={3}>
+          <Button key={key} as={block.href ? "a" : "button"} href={block.href || undefined} colorScheme="pink" size="md" mb={3}>
             {content || "Acción"}
           </Button>
         );
@@ -69,8 +69,11 @@ const TemplateRenderer = ({ estructura }) => {
             src={block.src || block.content}
             alt={block.alt || "Imagen"}
             objectFit="cover"
-            w="100%"
-            maxH="500px"
+            w={block.styles?.width || "100%"}
+            maxH={block.styles?.maxHeight || "500px"}
+            display="block"
+            ml={block.styles?.align === "left" ? 0 : "auto"}
+            mr={block.styles?.align === "right" ? 0 : "auto"}
             borderRadius="lg"
             mb={4}
           />
@@ -113,6 +116,7 @@ const TemplateRenderer = ({ estructura }) => {
     return (
       <Box
         key={section.id}
+        id={section.anchor || "sec-" + section.id}
         bg={sectionStyles.backgroundColor}
         color={sectionStyles.color}
         py={section.type === "header" ? 4 : 8}
@@ -141,6 +145,8 @@ const TemplateRenderer = ({ estructura }) => {
                     return (
                       <Button 
                         key={block.id} 
+                        as={block.href ? "a" : "button"}
+                        href={block.href || undefined}
                         variant="ghost" 
                         size="md" 
                         color={sectionStyles.color}
