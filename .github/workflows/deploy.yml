@@ -37,6 +37,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy por SSH
+        # Sin secretos configurados (G5 de DEPLOY.md pendiente) el paso se
+        # salta y el workflow queda verde; al añadir EC2_HOST/EC2_USER/EC2_KEY
+        # despliega solo en cada push.
+        if: ${{ secrets.EC2_HOST != '' }}
         env:
           SSH_HOST: ${{ secrets.EC2_HOST }}
           SSH_USER: ${{ secrets.EC2_USER }}
