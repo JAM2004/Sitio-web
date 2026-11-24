@@ -84,7 +84,7 @@ en AWS o ~€6/mes migrando a Hetzner (plan B, §G9). Dominio opcional $10-15/a�
    permisos (PowerShell como admin):
 
    ```powershell
-   icacls "C:\ruta\cie-conecta.pem" /inheritance:r /grant "R:$env:USERNAME"
+   icacls "C:\ruta\cie-conecta.pem" /inheritance:r /grant "${env:USERNAME}:R"
    ```
 
 ## G2 — Docker en la instancia
