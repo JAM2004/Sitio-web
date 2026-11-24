@@ -15,8 +15,7 @@ las publica por slug.
   `react-router-dom`, `jwt-decode`, `react-slick`)
 - **server**: Node (ESM) + Express 5, `mysql2`, `jsonwebtoken`, `bcryptjs`,
   `multer` (subida de imágenes), `cors`, `dotenv`
-- **deploy**: Docker Compose (nginx + API + MySQL 8), GitHub Actions (CI/CD) —
-  ver [DEPLOY.md](DEPLOY.md)
+- **deploy**: Docker Compose (nginx + API + MySQL 8), GitHub Actions (CI/CD)
 
 ## Estructura
 
@@ -39,7 +38,6 @@ server/                  # API REST (Express)
   controllers/  routes/  middleware/
 docker-compose.yml       # orquesta app + db + web (Fase G)
 .github/workflows/       # CI/CD: lint + deploy por SSH
-DEPLOY.md                # guía de despliegue paso a paso
 ```
 
 Un solo repositorio git, con la raíz en la carpeta del proyecto: `client/` y
@@ -102,9 +100,9 @@ cp .env.example .env     # edita DB_PASS y JWT_SECRET
 docker compose up -d --build
 ```
 
-La guía completa (AWS EC2, DNS/HTTPS, CI/CD con GitHub Actions, backups,
-pruebas de aceptación y plan de migración) está en **[DEPLOY.md](DEPLOY.md)**.
-Credenciales por defecto del dump: `admin@empresa.com` / `admin1`.
+La guía de despliegue (AWS EC2, DNS/HTTPS, CI/CD con GitHub Actions, backups,
+pruebas de aceptación y plan de migración) se mantiene como documento local, no
+incluido en el repo. Credenciales por defecto del dump: `admin@empresa.com` / `admin1`.
 
 ## API (resumen)
 

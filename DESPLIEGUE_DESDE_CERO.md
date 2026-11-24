@@ -2,7 +2,8 @@
 
 Esta guía asume que **no sabés qué es un servidor, Docker o nginx**. Explica qué
 se hizo para publicar CIE Conecta en internet, paso a paso, y el *por qué* de
-cada cosa. Los comandos exactos están en [`DEPLOY.md`](DEPLOY.md); este
+cada cosa. Los comandos exactos están en `DEPLOY.md` (documento local, no
+incluido en el repo); este
 documento es el manual de conceptos que falta atrás de esa guía.
 
 **Al terminar de leerlo vas a poder explicar:** qué es desplegar, qué hace
@@ -585,4 +586,4 @@ Con ese mapa, cualquier tutorial de AWS, Docker o Kubernetes se vuelve legible.
 ---
 
 *Guía escrita el 2026-11-24 junto con la ejecución real de la Fase G.
-Comandos exactos: [`DEPLOY.md`](DEPLOY.md) · Estado del proyecto: `AGENTS.md`.*
+Comandos exactos: `DEPLOY.md` · Estado del proyecto: `AGENTS.md`.*
