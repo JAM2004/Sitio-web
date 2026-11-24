@@ -1,11 +1,13 @@
 # Sitio web — CMS de eventos por plantillas
 
-Sistema web tipo CMS para administrar **eventos** (contenido deportivo/UFC)
-mediante **plantillas editables**: una institución crea usuarios con roles
-(Administrador, Editor, Visitante), diseña páginas de eventos arrastrando
-componentes (texto, imágenes, slider, contacto, about) y las publica por slug.
+![CI/CD](https://github.com/JAM2004/Sitio-web/actions/workflows/deploy.yml/badge.svg)
+![Licencia MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)
 
-> Proyecto académico/institucional.
+Sistema web tipo CMS para administrar **eventos** (deportivos, culturales,
+institucionales) mediante **plantillas editables**: una institución crea
+usuarios con roles (Administrador, Editor, Visitante), diseña páginas de
+eventos arrastrando componentes (texto, imágenes, slider, contacto, about) y
+las publica por slug.
 
 ## Stack
 
@@ -13,25 +15,35 @@ componentes (texto, imágenes, slider, contacto, about) y las publica por slug.
   `react-router-dom`, `jwt-decode`, `react-slick`)
 - **server**: Node (ESM) + Express 5, `mysql2`, `jsonwebtoken`, `bcryptjs`,
   `multer` (subida de imágenes), `cors`, `dotenv`
+- **deploy**: Docker Compose (nginx + API + MySQL 8), GitHub Actions (CI/CD) —
+  ver [DEPLOY.md](DEPLOY.md)
 
 ## Estructura
 
 ```
 client/                  # Panel / frontend (React + Vite)
+  Dockerfile             # build de Vite + nginx (imagen `web`)
   src/
     pages/               # páginas de la app
-    components/          # componentes de UI
+    components/          # componentos de UI
     context/             # contexto de auth, etc.
 server/                  # API REST (Express)
+  Dockerfile             # imagen de la API (contenedor `app`)
+  nginx.conf             # nginx del contenedor `web` (proxy /api y /uploads)
+  login.sql              # dump canónico de la BD
   src/
     server.js            # entry
     db.js                # conexión MySQL
     hashPass.js
     multerConfig.js
   controllers/  routes/  middleware/
+docker-compose.yml       # orquesta app + db + web (Fase G)
+.github/workflows/       # CI/CD: lint + deploy por SSH
+DEPLOY.md                # guía de despliegue paso a paso
 ```
 
-Un solo repositorio git, con la raíz en la carpeta del proyecto: `client/` y `server/` viven dentro de él.
+Un solo repositorio git, con la raíz en la carpeta del proyecto: `client/` y
+`server/` viven dentro de él.
 
 ## Requisitos
 
@@ -41,7 +53,7 @@ Un solo repositorio git, con la raíz en la carpeta del proyecto: `client/` y `s
 
 Base de datos: usuarios y roles (`usuarios`, `roles`), eventos (`eventos`),
 páginas por slug (`paginas`), plantillas con `estructura_base` JSON
-(`plantillas`) y sus componentes (`componentes`, `evento_imagenes`).
+(`plantillas`) y las imágenes de cada plantilla (`evento_imagenes`).
 
 ## Instalación
 
@@ -81,6 +93,19 @@ El cliente pide siempre rutas relativas (`/api/...`, `/uploads/...`):
 `vite.config.js` hace de proxy hacia el 3001 en desarrollo; en producción ese
 papel lo hace nginx.
 
+## Despliegue
+
+Todo contenedorizado — en local o en el servidor:
+
+```bash
+cp .env.example .env     # edita DB_PASS y JWT_SECRET
+docker compose up -d --build
+```
+
+La guía completa (AWS EC2, DNS/HTTPS, CI/CD con GitHub Actions, backups,
+pruebas de aceptación y plan de migración) está en **[DEPLOY.md](DEPLOY.md)**.
+Credenciales por defecto del dump: `admin@empresa.com` / `admin1`.
+
 ## API (resumen)
 
 - Sesión: `POST /login`, `PATCH /usuarios/cambiar-pass`, `PATCH /usuarios/:id/reset-pass`
@@ -97,4 +122,8 @@ papel lo hace nginx.
 
 Autenticación por **JWT** (`Authorization: Bearer <token>`) y autorización por roles.
 
-# El proyecto no esta concluido #
+## Estado
+
+Fases A-F completadas (seguridad y roles, página pública, editor drag & drop,
+despliegue Linux documentado, marca y docs) y Fase G de despliegue
+contenedorizado en curso. El proyecto se mantiene activo.

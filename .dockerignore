@@ -1,0 +1,13 @@
+# Contexto de build de las imágenes (raíz del repo)
+.git
+.github
+graphify-out
+AGENTS.md
+**/node_modules
+client/dist
+.env
+server/.env
+# Subidas de usuario: no viajan en la imagen (viven en el volumen `uploads`);
+# solo se conserva el logo por defecto para que el volumen arranque con él.
+server/public/uploads/*
+!server/public/uploads/default-logo.png

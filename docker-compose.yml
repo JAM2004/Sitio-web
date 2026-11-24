@@ -1,0 +1,64 @@
+# CIE Conecta — despliegue con Docker Compose (Fase G)
+# 1) cp .env.example .env  y edita DB_PASS / JWT_SECRET
+# 2) docker compose up -d --build
+# El dump (server/login.sql) se importa solo en el PRIMER arranque del volumen
+# db (después se ignora; para re-importar: docker compose down -v y subir de nuevo).
+# Nombre fijo del proyecto: nombra los volúmenes (cie-conecta_uploads, etc.),
+# así el cron de backups y la migración del plan B no dependen del nombre de la carpeta.
+name: cie-conecta
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASS:?Crea .env a partir de .env.example}
+      MYSQL_DATABASE: login
+    volumes:
+      - db-data:/var/lib/mysql
+      # El entrypoint de mysql selecciona MYSQL_DATABASE antes de correr
+      # cada .sql, así que el dump no necesita CREATE DATABASE ni USE.
+      - ./server/login.sql:/docker-entrypoint-initdb.d/01-login.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  app:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # ponytail: root de MySQL dentro de la red interna del compose (el
+      # puerto 3306 no se expone afuera); usuario dedicado si hace falta.
+      DB_HOST: db
+      DB_NAME: login
+      DB_USER: root
+      DB_PASS: ${DB_PASS:?Crea .env a partir de .env.example}
+      JWT_SECRET: ${JWT_SECRET:?Crea .env a partir de .env.example}
+      PORTWEB: "3001"
+      UPLOADS_DIR: /app/public/uploads
+    volumes:
+      # Volumen nombrado: en el primer arranque Docker copia dentro lo que
+      # traiga la imagen (default-logo.png) y ahí viven las subidas de usuario.
+      - uploads:/app/public/uploads
+
+  web:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+
+volumes:
+  db-data:
+  uploads:

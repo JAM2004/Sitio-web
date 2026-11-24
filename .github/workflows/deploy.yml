@@ -1,0 +1,52 @@
+# CIE Conecta — CI/CD (Fase G5)
+# lint en cada push; si pasa, deploy por SSH al VPS (git pull + compose build).
+# Secretos requeridos en el repo de GitHub:
+#   EC2_HOST  — IP o hostname (nip.io) del VPS
+#   EC2_USER  — usuario SSH (ubuntu)
+#   EC2_KEY   — clave privada completa (OpenSSH o PEM)
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: ESLint client
+        working-directory: client
+        run: |
+          npm ci
+          npx eslint .
+      - name: ESLint server
+        working-directory: server
+        run: |
+          npm ci
+          npx eslint .
+
+  deploy:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy por SSH
+        env:
+          SSH_HOST: ${{ secrets.EC2_HOST }}
+          SSH_USER: ${{ secrets.EC2_USER }}
+          SSH_KEY: ${{ secrets.EC2_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          # --force-recreate web: nginx re-resuelve la IP del servicio `app`
+          # (si no, conserva la IP vieja tras recrear el contenedor del API)
+          ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
+            "cd Sitio-web && git pull --ff-only && docker compose up -d --build --force-recreate web"
