@@ -1,9 +1,9 @@
-# CIE Conecta ??? CI/CD (Fase G5)
+# CIE Conecta — CI/CD (Fase G5)
 # lint en cada push; si pasa, deploy por SSH al VPS (git pull + compose build).
 # Secretos requeridos en el repo de GitHub:
-#   EC2_HOST  ??? IP o hostname (nip.io) del VPS
-#   EC2_USER  ??? usuario SSH (ubuntu)
-#   EC2_KEY   ??? clave privada completa (OpenSSH o PEM)
+#   EC2_HOST  — IP o hostname (nip.io) del VPS
+#   EC2_USER  — usuario SSH (ubuntu)
+#   EC2_KEY   — clave privada completa (OpenSSH o PEM)
 name: CI/CD
 
 on:
@@ -36,16 +36,16 @@ jobs:
   deploy:
     needs: lint
     runs-on: ubuntu-latest
+    # `secrets` no está permitido en un `if` de GitHub Actions; se vierte a
+    # env a nivel de job y el paso se condiciona con env.SSH_HOST. Sin
+    # secretos configurados SSH_HOST queda vacío y el paso se salta.
+    env:
+      SSH_HOST: ${{ secrets.EC2_HOST }}
+      SSH_USER: ${{ secrets.EC2_USER }}
+      SSH_KEY: ${{ secrets.EC2_KEY }}
     steps:
       - name: Deploy por SSH
-        # Sin secretos configurados (G5 de DEPLOY.md pendiente) el paso se
-        # salta y el workflow queda verde; al a??adir EC2_HOST/EC2_USER/EC2_KEY
-        # despliega solo en cada push.
-        if: ${{ secrets.EC2_HOST != '' }}
-        env:
-          SSH_HOST: ${{ secrets.EC2_HOST }}
-          SSH_USER: ${{ secrets.EC2_USER }}
-          SSH_KEY: ${{ secrets.EC2_KEY }}
+        if: ${{ env.SSH_HOST != '' }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
