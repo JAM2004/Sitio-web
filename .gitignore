@@ -2,6 +2,7 @@ AGENTS.md
 graphify-out
 .env
 DEPLOY.md
+DESPLIEGUE_DESDE_CERO.md
 client/README.md
 client/DEPENDENCIAS.md
 client/client.code-workspace
