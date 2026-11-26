@@ -331,7 +331,7 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
     const base = slugSeccion(nombre) || "seccion";
     let ancla = base;
     for (let n = 2; lista.some((s) => s.anchor === ancla); n++) {
-      ancla = `{base}-${n}`;
+      ancla = `${base}-${n}`;
     }
     return ancla;
   };
@@ -458,12 +458,16 @@ export default function EditorCanvas({ initialData, onSave, plantillaId, slugUrl
             : {
               ...c,
               blocks: c.blocks.map((b) =>
-                b.type === "menu-item" && b.href === `#${anclaVieja}`
+                b.type === "menu-item" &&
+                (b.id === `menu-${sectionId}` || b.href === `#${anclaVieja}`)
                   ? {
                     ...b,
                     href: `#${anclaNueva}`,
                     content:
-                      limpio && b.content === nombreViejo ? limpio : b.content,
+                      limpio &&
+                      (b.content === nombreViejo || nombreViejo === "")
+                        ? limpio
+                        : b.content,
                   }
                   : b
               ),

@@ -257,9 +257,19 @@ export default function SidebarEditor({
                               size="sm"
                               placeholder="Sin ancla"
                               value={item.href || ""}
-                              onChange={(e) =>
-                                updateBlock(item.id, { href: e.target.value })
-                              }
+                              onChange={(e) => {
+                                const href = e.target.value;
+                                const destino = sections.find(
+                                  (s) =>
+                                    `#${s.anchor || `sec-${s.id}`}` === href
+                                );
+                                updateBlock(
+                                  item.id,
+                                  destino?.name
+                                    ? { href, content: destino.name }
+                                    : { href }
+                                );
+                              }}
                             >
                               {sections.map((s, i) => (
                                 <option key={s.id} value={`#${s.anchor || `sec-${s.id}`}`}>

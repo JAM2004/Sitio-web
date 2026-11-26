@@ -203,7 +203,39 @@ export const editarEvento = async (req, res) => {
     if (titulo !== undefined) {
     const queryPlantilla = 'UPDATE plantillas SET nombre_plantilla = ? WHERE id_plantilla = (SELECT plantillas_id_plantilla FROM eventos WHERE id_evento = ?)';
     const nombrePlantilla = String(titulo).replace(/\s+/g, ' ').trim().slice(0, 100);
-    await conn.execute(queryPlantilla, [nombrePlantilla, id]); }
+    await conn.execute(queryPlantilla, [nombrePlantilla, id]);
+    
+    const Base = slugify(titulo);
+    if (Base) {
+      const [propia] = await conn.execute(
+        `SELECT pg.id_pagina, pg.slug_url FROM plantillas p
+        JOIN paginas pg ON pg.id_pagina = p.paginas_id_pagina
+        JOIN eventos ev ON ev.plantillas_id_plantilla = p.id_plantilla
+        WHERE ev.id_evento = ?`, [id]
+      );
+      if (propia.length) {
+        const paginaId = propia[0].id_pagina;
+        const slugActual = propia[0].slug_url;
+        let slug = Base;
+        for (let n = 2; n < 5000; n++) {
+          const [dup] = await conn.execute(
+            'SELECT slug_url FROM paginas WHERE slug_url = ? AND id_pagina <> ?',
+            [slug, paginaId]
+          );
+          if (dup.length === 0) break;
+          slug = `${Base}-${n}`;
+        }
+        if (slug !== slugActual) {
+          await conn.execute(
+            'UPDATE paginas SET slug_url = ? WHERE id_pagina = ?',
+            [slug, paginaId]
+          );
+        }
+      }
+    }
+
+    }
+
 
     const [result] = await conn.execute(query, value);
 
