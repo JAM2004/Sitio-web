@@ -9,6 +9,24 @@ usuarios con roles (Administrador, Editor, Visitante), diseña páginas de
 eventos arrastrando componentes (texto, imágenes, slider, contacto, about) y
 las publica por slug.
 
+## Demo
+
+Tres GIFs del editor y la página pública (guardar = publicar):
+
+**Drag & drop en el editor** — arrastrar bloques de la paleta a las columnas
+y moverlos entre secciones:
+
+![Editor drag & drop](docs/demo-drag-drop.gif)
+
+**Editar el evento** — cambiar el título y cómo el slug de la URL sigue al
+título al guardar:
+
+![Editar evento](docs/demo-editor-titulo.gif)
+
+**Página pública** — ancla del menú que desplaza la página a su sección:
+
+![Página pública y anclas](docs/demo-pagina-ancla.gif)
+
 ## Stack
 
 - **client**: React 18 + Vite + Chakra UI / MUI (`@dnd-kit` para drag & drop,
@@ -122,6 +140,4 @@ Autenticación por **JWT** (`Authorization: Bearer <token>`) y autorización por
 
 ## Estado
 
-Fases A-F completadas (seguridad y roles, página pública, editor drag & drop,
-despliegue Linux documentado, marca y docs) y Fase G de despliegue
-contenedorizado en curso. El proyecto se mantiene activo.
+Concluido.
