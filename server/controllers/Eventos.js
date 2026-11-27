@@ -1,15 +1,6 @@
 import db from '../src/db.js';
+import { slugify } from '../src/slug.js';
 
-const slugify= (t) =>
-  String(t)
-.normalize("NFD")
-.replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-    
 export const verEventos = async (req, res) => {
   try {
     if (req.user.id_rol === 1) { 

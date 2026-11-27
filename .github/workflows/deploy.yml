@@ -32,10 +32,23 @@ jobs:
         run: |
           npm ci
           npx eslint .
+      - name: Imports Mays
+        run: node scripts/check-imports.mjs
+      - name: Build del cliente
+        working-directory: client
+        run: npm run build
+      - name: Tests del server
+        working-directory: server
+        run: npm test
+
 
   deploy:
     needs: lint
     runs-on: ubuntu-latest
+    # Sin servidor el deploy fallaría y el badge se pondría rojo. Se activa
+    # creando la variable DEPLOY_ENABLED=true en
+    # Settings > Secrets and variables > Actions > Variables.
+    if: ${{ vars.DEPLOY_ENABLED == 'true'}}
     # `secrets` no está permitido en un `if` de GitHub Actions; se vierte a
     # env a nivel de job y el paso se condiciona con env.SSH_HOST. Sin
     # secretos configurados SSH_HOST queda vacío y el paso se salta.

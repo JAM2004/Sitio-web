@@ -1,6 +1,8 @@
 import bcryptjs from "bcryptjs";
 import pool from "./db.js";
 
+
+// Hashea contraseñas que no se hayan hasheado en la base de datos.
 const [usuarios] = await pool.query("SELECT ID_User AS id, Pass FROM usuarios");
 
 for (const user of usuarios) {

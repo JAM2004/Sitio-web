@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test-db": "node ./scripts/test-db.js",
     "dev": "nodemon --watch src --ext js --exec node src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node --test"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
